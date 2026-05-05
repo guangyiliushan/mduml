@@ -1,16 +1,16 @@
-# @guangyiliushan/mduml-renderer-plantuml
+# @mduml/renderer-plantuml
 
 MDUML 体系的 PlantUML 渲染器。
 
 ## 安装
 
 ```bash
-npm i @guangyiliushan/mduml-renderer-plantuml
+npm i @mduml/renderer-plantuml
 ```
 
 ## 使用方式
 
-该渲染器主要被适配器使用（例如 `@guangyiliushan/mduml-adapter-markdown-it`）用于渲染 `plantuml` / `uml` fenced code blocks。
+该渲染器主要被适配器使用（例如 `@mduml/adapter-markdown-it`）用于渲染 `plantuml` / `uml` fenced code blocks。
 
 ### 本地优先（推荐）
 

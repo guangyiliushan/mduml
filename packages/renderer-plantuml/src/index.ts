@@ -1,7 +1,7 @@
 import { access } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { deflateRawSync } from "node:zlib";
-import type { DiagramLanguage, RenderedOutput, Renderer, RendererContext } from "@guangyiliushan/mduml-core";
+import type { DiagramLanguage, RenderedOutput, Renderer, RendererContext } from "@mduml/core";
 
 export type PlantUmlRendererConfig = {
   localJarPath?: string;

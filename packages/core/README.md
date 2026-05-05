@@ -1,4 +1,4 @@
-# @guangyiliushan/mduml-core
+# @mduml/core
 
 Core rendering protocol and utilities for the MDUML ecosystem.
 
@@ -11,13 +11,13 @@ Core rendering protocol and utilities for the MDUML ecosystem.
 ## Install
 
 ```bash
-npm i @guangyiliushan/mduml-core
+npm i @mduml/core
 ```
 
 ## Usage
 
 Most users do not use this package directly. It is used by renderers/adapters such as:
-- `@guangyiliushan/mduml-renderer-mermaid`
-- `@guangyiliushan/mduml-renderer-plantuml`
-- `@guangyiliushan/mduml-adapter-markdown-it`
+- `@mduml/renderer-mermaid`
+- `@mduml/renderer-plantuml`
+- `@mduml/adapter-markdown-it`
 

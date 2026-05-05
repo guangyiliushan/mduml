@@ -1,5 +1,5 @@
 {
-  "name": "@guangyiliushan/mduml-renderer-mermaid",
+  "name": "@mduml/renderer-mermaid",
   "version": "0.1.0",
   "private": false,
   "type": "module",
@@ -19,7 +19,7 @@
     "test": "node -e \"process.exit(0)\""
   },
   "dependencies": {
-    "@guangyiliushan/mduml-core": "0.1.0",
+    "@mduml/core": "0.1.0",
     "jsdom": "^26.0.0",
     "mermaid": "^11.0.0"
   },

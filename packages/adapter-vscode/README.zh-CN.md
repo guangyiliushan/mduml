@@ -5,7 +5,7 @@
 ## 构建
 
 ```bash
-npm run build -w @guangyiliushan/mduml-adapter-vscode
+npm run build -w @mduml/adapter-vscode
 ```
 
 ## 打包（VSIX）

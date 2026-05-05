@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { createPlantUmlRenderer } from "@guangyiliushan/mduml-renderer-plantuml";
+import { createPlantUmlRenderer } from "@mduml/renderer-plantuml";
 
 const readStdin = (): string => readFileSync(0, "utf8");
 

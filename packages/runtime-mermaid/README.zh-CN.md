@@ -1,17 +1,17 @@
-# @guangyiliushan/mduml-runtime-mermaid
+# @mduml/runtime-mermaid
 
 浏览器运行期 Mermaid 渲染工具：把 `<div class="mermaid">...</div>`（以及 `data-uml-flow-mermaid-config`）渲染为 SVG，并尽量保持“横平竖直（正交）”连线风格。
 
 ## 安装
 
 ```bash
-npm i @guangyiliushan/mduml-runtime-mermaid
+npm i @mduml/runtime-mermaid
 ```
 
 ## 使用方式
 
 ```ts
-import { renderAllMermaidBlocks } from "@guangyiliushan/mduml-runtime-mermaid";
+import { renderAllMermaidBlocks } from "@mduml/runtime-mermaid";
 
 await renderAllMermaidBlocks({
   defaultConfig: {
@@ -23,7 +23,7 @@ await renderAllMermaidBlocks({
 
 ## 与 markdown-it 适配器配合
 
-`@guangyiliushan/mduml-adapter-markdown-it` 的 runtime 模式会输出 `.mermaid` 占位块，并写入 `data-uml-flow-mermaid-config`。
+`@mduml/adapter-markdown-it` 的 runtime 模式会输出 `.mermaid` 占位块，并写入 `data-uml-flow-mermaid-config`。
 
 ## 风格说明
 

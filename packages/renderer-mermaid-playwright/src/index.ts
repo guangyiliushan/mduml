@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import type { DiagramLanguage, RenderedOutput, Renderer, RendererContext } from "@guangyiliushan/mduml-core";
+import type { DiagramLanguage, RenderedOutput, Renderer, RendererContext } from "@mduml/core";
 
 export type MermaidPlaywrightConfig = {
   executablePath?: string;

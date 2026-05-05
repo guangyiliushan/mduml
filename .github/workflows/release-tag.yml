@@ -1,4 +1,4 @@
-name: release-tag
+name: Create Release Tags
 
 on:
   workflow_dispatch:
@@ -15,20 +15,38 @@ concurrency:
 
 jobs:
   tag:
+    name: Generate and Push Tags
+    # Only run on manual trigger or non-release commits
     if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, 'chore(release):')
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: git config user.name "github-actions[bot]"
-      - run: git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - run: npm run release:tag
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Generate semantic-release tags
+        run: npm run release:tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify tags created
+        run: |
+          echo "Recent tags:"
+          git tag --sort=-version:refname | head -5

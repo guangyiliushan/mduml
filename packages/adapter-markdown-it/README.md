@@ -1,11 +1,11 @@
-# @guangyiliushan/mduml-adapter-markdown-it
+# @mduml/adapter-markdown-it
 
 Markdown-it fenced code block adapter for rendering Mermaid / PlantUML fences as SVG (build-time) or runtime placeholders.
 
 ## Install
 
 ```bash
-npm i markdown-it @guangyiliushan/mduml-adapter-markdown-it
+npm i markdown-it @mduml/adapter-markdown-it
 ```
 
 To enable build-time Mermaid SVG rendering (`mode=build/auto`), install Playwright in your app:
@@ -18,7 +18,7 @@ npm i -D playwright
 
 ```ts
 import MarkdownIt from "markdown-it";
-import { umlFlowMarkdownItPlugin } from "@guangyiliushan/mduml-adapter-markdown-it";
+import { umlFlowMarkdownItPlugin } from "@mduml/adapter-markdown-it";
 
 const md = new MarkdownIt({ html: true });
 md.use(umlFlowMarkdownItPlugin, {
@@ -32,7 +32,7 @@ const html = md.render("```mermaid\ngraph TD\nA-->B\n```");
 
 ## Modes
 
-- `runtime` (default): outputs `<div class="mermaid">...</div>` and renders in the browser via `@guangyiliushan/mduml-runtime-mermaid`
+- `runtime` (default): outputs `<div class="mermaid">...</div>` and renders in the browser via `@mduml/runtime-mermaid`
 - `build`: outputs SVG during build time (requires Playwright)
 - `auto`: tries build-time SVG first, falls back to runtime placeholder on failure
 

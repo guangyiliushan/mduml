@@ -1,5 +1,5 @@
 {
-  "name": "@guangyiliushan/mduml-adapter-vscode",
+  "name": "@mduml/adapter-vscode",
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",
@@ -11,7 +11,7 @@
     "package:vsix": "node ./scripts/package-vsix.mjs"
   },
   "dependencies": {
-    "@guangyiliushan/mduml-adapter-markdown-it": "0.1.0",
+    "@mduml/adapter-markdown-it": "0.1.0",
     "markdown-it": "^14.1.0"
   },
   "devDependencies": {

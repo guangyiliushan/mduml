@@ -1,4 +1,4 @@
-# @guangyiliushan/mduml-core
+# @mduml/core
 
 MDUML 体系的核心协议与工具包。
 
@@ -11,13 +11,13 @@ MDUML 体系的核心协议与工具包。
 ## 安装
 
 ```bash
-npm i @guangyiliushan/mduml-core
+npm i @mduml/core
 ```
 
 ## 使用方式
 
 通常不需要直接使用该包，它主要被以下包依赖：
-- `@guangyiliushan/mduml-renderer-mermaid`
-- `@guangyiliushan/mduml-renderer-plantuml`
-- `@guangyiliushan/mduml-adapter-markdown-it`
+- `@mduml/renderer-mermaid`
+- `@mduml/renderer-plantuml`
+- `@mduml/adapter-markdown-it`
 

@@ -1,5 +1,5 @@
 {
-  "name": "@guangyiliushan/mduml-adapter-obsidian",
+  "name": "@mduml/adapter-obsidian",
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",
@@ -11,8 +11,8 @@
     "package:plugin": "node ./scripts/package-plugin.mjs"
   },
   "dependencies": {
-    "@guangyiliushan/mduml-runtime-mermaid": "0.1.0",
-    "@guangyiliushan/mduml-renderer-plantuml": "0.1.0"
+    "@mduml/runtime-mermaid": "0.1.0",
+    "@mduml/renderer-plantuml": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

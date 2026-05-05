@@ -1,5 +1,5 @@
 {
-  "name": "@guangyiliushan/mduml-renderer-plantuml",
+  "name": "@mduml/renderer-plantuml",
   "version": "0.1.0",
   "private": false,
   "type": "module",
@@ -19,7 +19,7 @@
     "test": "node ./dist/tests/smoke-test.cjs"
   },
   "dependencies": {
-    "@guangyiliushan/mduml-core": "0.1.0"
+    "@mduml/core": "0.1.0"
   },
   "devDependencies": {
     "rimraf": "^6.0.1",

@@ -5,7 +5,7 @@ This package builds an Obsidian community plugin that renders Mermaid blocks and
 ## Build
 
 ```bash
-npm run build -w @guangyiliushan/mduml-adapter-obsidian
+npm run build -w @mduml/adapter-obsidian
 ```
 
 ## Install (manual)

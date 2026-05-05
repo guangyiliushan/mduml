@@ -59,12 +59,12 @@ MDUML 强制执行严格的"正交优先"视觉风格：
 
 #### 发布包（npm）
 
-- [`@guangyiliushan/mduml-core`](packages/core) - 核心逻辑和共享工具
-- [`@guangyiliushan/mduml-renderer-mermaid`](packages/renderer-mermaid) - Mermaid 图表渲染器
-- [`@guangyiliushan/mduml-renderer-plantuml`](packages/renderer-plantuml) - PlantUML 图表渲染器
-- [`@guangyiliushan/mduml-runtime-mermaid`](packages/runtime-mermaid) - Mermaid 浏览器运行时
-- [`@guangyiliushan/mduml-renderer-mermaid-playwright`](packages/renderer-mermaid-playwright) - 基于 Playwright 的构建时 SVG 生成
-- [`@guangyiliushan/mduml-adapter-markdown-it`](packages/adapter-markdown-it) - markdown-it 插件和 CLI 工具
+- [`@mduml/core`](packages/core) - 核心逻辑和共享工具
+- [`@mduml/renderer-mermaid`](packages/renderer-mermaid) - Mermaid 图表渲染器
+- [`@mduml/renderer-plantuml`](packages/renderer-plantuml) - PlantUML 图表渲染器
+- [`@mduml/runtime-mermaid`](packages/runtime-mermaid) - Mermaid 浏览器运行时
+- [`@mduml/renderer-mermaid-playwright`](packages/renderer-mermaid-playwright) - 基于 Playwright 的构建时 SVG 生成
+- [`@mduml/adapter-markdown-it`](packages/adapter-markdown-it) - markdown-it 插件和 CLI 工具
 
 #### 应用包（不发布到 npm）
 
@@ -75,12 +75,12 @@ MDUML 强制执行严格的"正交优先"视觉风格：
 
 ```mermaid
 graph TD
-  core["@guangyiliushan/mduml-core"]
-  renderer_mermaid["@guangyiliushan/mduml-renderer-mermaid"]
-  renderer_plantuml["@guangyiliushan/mduml-renderer-plantuml"]
-  runtime_mermaid["@guangyiliushan/mduml-runtime-mermaid"]
-  renderer_mermaid_pw["@guangyiliushan/mduml-renderer-mermaid-playwright"]
-  adapter_mdit["@guangyiliushan/mduml-adapter-markdown-it"]
+  core["@mduml/core"]
+  renderer_mermaid["@mduml/renderer-mermaid"]
+  renderer_plantuml["@mduml/renderer-plantuml"]
+  runtime_mermaid["@mduml/runtime-mermaid"]
+  renderer_mermaid_pw["@mduml/renderer-mermaid-playwright"]
+  adapter_mdit["@mduml/adapter-markdown-it"]
 
   renderer_mermaid --> core
   renderer_plantuml --> core
@@ -97,14 +97,14 @@ graph TD
 #### 安装
 
 ```bash
-npm install markdown-it @guangyiliushan/mduml-adapter-markdown-it @guangyiliushan/mduml-runtime-mermaid
+npm install markdown-it @mduml/adapter-markdown-it @mduml/runtime-mermaid
 ```
 
 #### 构建时配置
 
 ```typescript
 import MarkdownIt from "markdown-it";
-import { umlFlowMarkdownItPlugin } from "@guangyiliushan/mduml-adapter-markdown-it";
+import { umlFlowMarkdownItPlugin } from "@mduml/adapter-markdown-it";
 
 const md = new MarkdownIt({ html: true });
 
@@ -128,7 +128,7 @@ graph TD
 #### 浏览器运行时渲染
 
 ```typescript
-import { renderAllMermaidBlocks } from "@guangyiliushan/mduml-runtime-mermaid";
+import { renderAllMermaidBlocks } from "@mduml/runtime-mermaid";
 
 // 页面加载后渲染所有 Mermaid 代码块
 await renderAllMermaidBlocks({
@@ -196,7 +196,7 @@ md.use(umlFlowMarkdownItPlugin, {
 
 ```bash
 # 构建扩展
-npm run build -w @guangyiliushan/mduml-adapter-vscode
+npm run build -w @mduml/adapter-vscode
 
 # 创建 VSIX 包
 cd packages/adapter-vscode
@@ -216,7 +216,7 @@ npm run package:vsix
 
 ```bash
 # 构建插件
-npm run build -w @guangyiliushan/mduml-adapter-obsidian
+npm run build -w @mduml/adapter-obsidian
 
 # 创建插件包
 cd packages/adapter-obsidian
@@ -269,7 +269,7 @@ npm run clean
 npm run test
 
 # 构建指定包
-npm run build -w @guangyiliushan/mduml-core
+npm run build -w @mduml/core
 ```
 
 ### 项目结构
@@ -310,7 +310,7 @@ chore: 维护任务
 
 - **独立版本管理**：每个包维护自己的版本号
 - **自动打标签**：标签格式为 `<package-name>-<version>`
-  - 示例：`@guangyiliushan/mduml-core-1.2.0`
+  - 示例：`@mduml/core-1.2.0`
 - **语义化发布**：版本根据提交历史自动确定
 
 ## 🤝 贡献指南

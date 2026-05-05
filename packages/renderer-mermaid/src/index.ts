@@ -1,6 +1,6 @@
 import { JSDOM } from "jsdom";
 import mermaidModule from "mermaid";
-import type { DiagramLanguage, RenderedOutput, Renderer, RendererContext } from "@guangyiliushan/mduml-core";
+import type { DiagramLanguage, RenderedOutput, Renderer, RendererContext } from "@mduml/core";
 
 export type MermaidRendererConfig = {
   useElk?: boolean;

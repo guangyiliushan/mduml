@@ -10,7 +10,7 @@ export default defineConfig([
     clean: true,
     format: ["cjs"],
     external: ["vscode"],
-    noExternal: ["@guangyiliushan/mduml-adapter-markdown-it"],
+    noExternal: ["@mduml/adapter-markdown-it"],
     splitting: false,
     treeshake: false,
     target: "es2022"

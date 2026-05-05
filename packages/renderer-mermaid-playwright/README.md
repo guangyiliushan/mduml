@@ -1,11 +1,11 @@
-# @guangyiliushan/mduml-renderer-mermaid-playwright
+# @mduml/renderer-mermaid-playwright
 
 Build-time Mermaid-to-SVG renderer based on Playwright Chromium.
 
 ## Install
 
 ```bash
-npm i @guangyiliushan/mduml-renderer-mermaid-playwright
+npm i @mduml/renderer-mermaid-playwright
 ```
 
 This package declares `playwright` as an optional peer dependency. Install it in your project:
@@ -16,7 +16,7 @@ npm i -D playwright
 
 ## Usage
 
-This renderer is mainly used by `@guangyiliushan/mduml-adapter-markdown-it` when `mode=build/auto`.
+This renderer is mainly used by `@mduml/adapter-markdown-it` when `mode=build/auto`.
 
 ## Style rules
 

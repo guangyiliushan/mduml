@@ -5,7 +5,7 @@ This package builds the VS Code extension that renders Mermaid placeholders in M
 ## Build
 
 ```bash
-npm run build -w @guangyiliushan/mduml-adapter-vscode
+npm run build -w @mduml/adapter-vscode
 ```
 
 ## Package (VSIX)

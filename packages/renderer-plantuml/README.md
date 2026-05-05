@@ -1,16 +1,16 @@
-# @guangyiliushan/mduml-renderer-plantuml
+# @mduml/renderer-plantuml
 
 PlantUML renderer for the MDUML ecosystem.
 
 ## Install
 
 ```bash
-npm i @guangyiliushan/mduml-renderer-plantuml
+npm i @mduml/renderer-plantuml
 ```
 
 ## Usage
 
-This renderer is primarily used by adapters (for example `@guangyiliushan/mduml-adapter-markdown-it`) to render `plantuml` / `uml` fences.
+This renderer is primarily used by adapters (for example `@mduml/adapter-markdown-it`) to render `plantuml` / `uml` fences.
 
 ### Local-first rendering (recommended)
 

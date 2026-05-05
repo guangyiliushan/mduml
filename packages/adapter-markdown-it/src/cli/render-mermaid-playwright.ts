@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { createMermaidPlaywrightRenderer } from "@guangyiliushan/mduml-renderer-mermaid-playwright";
+import { createMermaidPlaywrightRenderer } from "@mduml/renderer-mermaid-playwright";
 
 const readStdin = (): string => readFileSync(0, "utf8");
 

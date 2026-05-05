@@ -59,12 +59,12 @@ MDUML enforces a strict "orthogonal-first" visual style for all diagrams:
 
 #### Published Packages (npm)
 
-- [`@guangyiliushan/mduml-core`](packages/core) - Core logic and shared utilities
-- [`@guangyiliushan/mduml-renderer-mermaid`](packages/renderer-mermaid) - Mermaid diagram renderer
-- [`@guangyiliushan/mduml-renderer-plantuml`](packages/renderer-plantuml) - PlantUML diagram renderer
-- [`@guangyiliushan/mduml-runtime-mermaid`](packages/runtime-mermaid) - Browser runtime for Mermaid rendering
-- [`@guangyiliushan/mduml-renderer-mermaid-playwright`](packages/renderer-mermaid-playwright) - Build-time SVG generation via Playwright
-- [`@guangyiliushan/mduml-adapter-markdown-it`](packages/adapter-markdown-it) - markdown-it plugin and CLI tool
+- [`@mduml/core`](packages/core) - Core logic and shared utilities
+- [`@mduml/renderer-mermaid`](packages/renderer-mermaid) - Mermaid diagram renderer
+- [`@mduml/renderer-plantuml`](packages/renderer-plantuml) - PlantUML diagram renderer
+- [`@mduml/runtime-mermaid`](packages/runtime-mermaid) - Browser runtime for Mermaid rendering
+- [`@mduml/renderer-mermaid-playwright`](packages/renderer-mermaid-playwright) - Build-time SVG generation via Playwright
+- [`@mduml/adapter-markdown-it`](packages/adapter-markdown-it) - markdown-it plugin and CLI tool
 
 #### Application Packages (not published to npm)
 
@@ -75,12 +75,12 @@ MDUML enforces a strict "orthogonal-first" visual style for all diagrams:
 
 ```mermaid
 graph TD
-  core["@guangyiliushan/mduml-core"]
-  renderer_mermaid["@guangyiliushan/mduml-renderer-mermaid"]
-  renderer_plantuml["@guangyiliushan/mduml-renderer-plantuml"]
-  runtime_mermaid["@guangyiliushan/mduml-runtime-mermaid"]
-  renderer_mermaid_pw["@guangyiliushan/mduml-renderer-mermaid-playwright"]
-  adapter_mdit["@guangyiliushan/mduml-adapter-markdown-it"]
+  core["@mduml/core"]
+  renderer_mermaid["@mduml/renderer-mermaid"]
+  renderer_plantuml["@mduml/renderer-plantuml"]
+  runtime_mermaid["@mduml/runtime-mermaid"]
+  renderer_mermaid_pw["@mduml/renderer-mermaid-playwright"]
+  adapter_mdit["@mduml/adapter-markdown-it"]
 
   renderer_mermaid --> core
   renderer_plantuml --> core
@@ -97,14 +97,14 @@ graph TD
 #### Installation
 
 ```bash
-npm install markdown-it @guangyiliushan/mduml-adapter-markdown-it @guangyiliushan/mduml-runtime-mermaid
+npm install markdown-it @mduml/adapter-markdown-it @mduml/runtime-mermaid
 ```
 
 #### Build-time Setup
 
 ```typescript
 import MarkdownIt from "markdown-it";
-import { umlFlowMarkdownItPlugin } from "@guangyiliushan/mduml-adapter-markdown-it";
+import { umlFlowMarkdownItPlugin } from "@mduml/adapter-markdown-it";
 
 const md = new MarkdownIt({ html: true });
 
@@ -128,7 +128,7 @@ graph TD
 #### Browser Runtime Rendering
 
 ```typescript
-import { renderAllMermaidBlocks } from "@guangyiliushan/mduml-runtime-mermaid";
+import { renderAllMermaidBlocks } from "@mduml/runtime-mermaid";
 
 // Render all Mermaid blocks after page load
 await renderAllMermaidBlocks({
@@ -196,7 +196,7 @@ md.use(umlFlowMarkdownItPlugin, {
 
 ```bash
 # Build the extension
-npm run build -w @guangyiliushan/mduml-adapter-vscode
+npm run build -w @mduml/adapter-vscode
 
 # Create VSIX package
 cd packages/adapter-vscode
@@ -216,7 +216,7 @@ npm run package:vsix
 
 ```bash
 # Build the plugin
-npm run build -w @guangyiliushan/mduml-adapter-obsidian
+npm run build -w @mduml/adapter-obsidian
 
 # Create plugin package
 cd packages/adapter-obsidian
@@ -269,7 +269,7 @@ npm run clean
 npm run test
 
 # Build specific package
-npm run build -w @guangyiliushan/mduml-core
+npm run build -w @mduml/core
 ```
 
 ### Project Structure
@@ -310,7 +310,7 @@ chore: maintenance tasks
 
 - **Independent Versioning**: Each package maintains its own version
 - **Automatic Tagging**: Tags follow format `<package-name>-<version>`
-  - Example: `@guangyiliushan/mduml-core-1.2.0`
+  - Example: `@mduml/core-1.2.0`
 - **Semantic Release**: Versions are determined automatically from commit history
 
 ## 🤝 Contributing

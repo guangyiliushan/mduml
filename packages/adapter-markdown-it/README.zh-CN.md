@@ -1,11 +1,11 @@
-# @guangyiliushan/mduml-adapter-markdown-it
+# @mduml/adapter-markdown-it
 
 为 markdown-it 提供 fenced code block 适配器，用于把 ` ```mermaid ` / ` ```plantuml ` / ` ```uml ` 转换为 SVG（构建期）或运行期占位 HTML。
 
 ## 安装
 
 ```bash
-npm i markdown-it @guangyiliushan/mduml-adapter-markdown-it
+npm i markdown-it @mduml/adapter-markdown-it
 ```
 
 如果你希望在构建期直接输出 Mermaid SVG（`mode=build/auto`），需要额外安装：
@@ -18,7 +18,7 @@ npm i -D playwright
 
 ```ts
 import MarkdownIt from "markdown-it";
-import { umlFlowMarkdownItPlugin } from "@guangyiliushan/mduml-adapter-markdown-it";
+import { umlFlowMarkdownItPlugin } from "@mduml/adapter-markdown-it";
 
 const md = new MarkdownIt({ html: true });
 md.use(umlFlowMarkdownItPlugin, {
@@ -30,7 +30,7 @@ md.use(umlFlowMarkdownItPlugin, {
 
 ## 模式
 
-- `runtime`（默认）：输出 `<div class="mermaid">...</div>`，需配合 `@guangyiliushan/mduml-runtime-mermaid` 在浏览器运行期渲染
+- `runtime`（默认）：输出 `<div class="mermaid">...</div>`，需配合 `@mduml/runtime-mermaid` 在浏览器运行期渲染
 - `build`：构建期直接输出 SVG（需要 Playwright）
 - `auto`：优先构建期 SVG，失败后回退为 runtime 占位
 

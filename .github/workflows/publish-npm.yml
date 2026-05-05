@@ -1,38 +1,74 @@
-name: publish-npm
+name: Publish to NPM
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "要发布的 tag（默认使用触发时的 ref_name）"
+        description: "Tag to publish (defaults to triggering ref_name)"
         required: false
         type: string
   push:
     tags:
-      - "@guangyiliushan/**"
+      - "@mduml/*"
 
 permissions:
   contents: read
 
 jobs:
   publish:
-    if: secrets.NPM_TOKEN != ''
+    name: Publish Package
+    if: github.repository == 'your-org/mduml' && secrets.NPM_TOKEN != ''
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
           cache: npm
-      - run: npm ci
-      - id: resolve
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: npm run build
+
+      - name: Resolve workspace from tag
+        id: resolve
         run: |
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          echo "Resolving tag: $TAG"
           node scripts/resolve-workspace-from-tag.mjs "$TAG" > /tmp/uml-flow-tag.json
-          node -e "const v=require('fs').readFileSync('/tmp/uml-flow-tag.json','utf8');const j=JSON.parse(v);if(!j.ok) process.exit(1);console.log('workspaceName='+j.workspaceName);console.log('version='+j.version);" >> "$GITHUB_OUTPUT"
-      - run: npm publish --workspace "${{ steps.resolve.outputs.workspaceName }}" --access public
+          
+          # Parse and validate
+          WORKSPACE_NAME=$(node -e "const j=JSON.parse(require('fs').readFileSync('/tmp/uml-flow-tag.json','utf8')); if(!j.ok) { console.error('Invalid tag'); process.exit(1); } console.log(j.workspaceName);")
+          VERSION=$(node -e "const j=JSON.parse(require('fs').readFileSync('/tmp/uml-flow-tag.json','utf8')); console.log(j.version);")
+          
+          echo "workspaceName=$WORKSPACE_NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Publishing $WORKSPACE_NAME@$VERSION"
+
+      - name: Verify package exists
+        run: |
+          if [ ! -d "packages/${{ steps.resolve.outputs.workspaceName }}" ]; then
+            echo "Error: Package directory not found"
+            exit 1
+          fi
+
+      - name: Publish to NPM
+        run: |
+          echo "Publishing ${{ steps.resolve.outputs.workspaceName }}@${{ steps.resolve.outputs.version }}"
+          npm publish --workspace "${{ steps.resolve.outputs.workspaceName }}" --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish success
+        if: success()
+        run: |
+          echo "✅ Successfully published ${{ steps.resolve.outputs.workspaceName }}@${{ steps.resolve.outputs.version }}"

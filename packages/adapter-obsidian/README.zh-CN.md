@@ -5,7 +5,7 @@
 ## 构建
 
 ```bash
-npm run build -w @guangyiliushan/mduml-adapter-obsidian
+npm run build -w @mduml/adapter-obsidian
 ```
 
 ## 手动安装

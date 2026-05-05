@@ -1,17 +1,17 @@
-# @guangyiliushan/mduml-runtime-mermaid
+# @mduml/runtime-mermaid
 
 Browser runtime Mermaid renderer for turning `<div class="mermaid">...</div>` blocks into SVG, with an orthogonal-first layout preference.
 
 ## Install
 
 ```bash
-npm i @guangyiliushan/mduml-runtime-mermaid
+npm i @mduml/runtime-mermaid
 ```
 
 ## Usage
 
 ```ts
-import { renderAllMermaidBlocks } from "@guangyiliushan/mduml-runtime-mermaid";
+import { renderAllMermaidBlocks } from "@mduml/runtime-mermaid";
 
 await renderAllMermaidBlocks({
   defaultConfig: {
@@ -23,7 +23,7 @@ await renderAllMermaidBlocks({
 
 ## Works with markdown-it adapter
 
-`@guangyiliushan/mduml-adapter-markdown-it` (runtime mode) outputs `.mermaid` placeholders and writes `data-uml-flow-mermaid-config`.
+`@mduml/adapter-markdown-it` (runtime mode) outputs `.mermaid` placeholders and writes `data-uml-flow-mermaid-config`.
 Call `renderAllMermaidBlocks()` after page load to render.
 
 ## Style rules

@@ -3,7 +3,7 @@ import type Token from "markdown-it/lib/token.mjs";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { createErrorBlockHtml } from "@guangyiliushan/mduml-core";
+import { createErrorBlockHtml } from "@mduml/core";
 
 export type UmlFlowMarkdownItMode = "runtime" | "build" | "auto";
 

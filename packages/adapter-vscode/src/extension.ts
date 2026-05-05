@@ -1,6 +1,6 @@
 import type MarkdownIt from "markdown-it";
 import * as vscode from "vscode";
-import { umlFlowMarkdownItPlugin } from "@guangyiliushan/mduml-adapter-markdown-it";
+import { umlFlowMarkdownItPlugin } from "@mduml/adapter-markdown-it";
 
 export const activate = (_context: vscode.ExtensionContext) => {};
 

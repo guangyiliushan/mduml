@@ -1,6 +1,6 @@
 import { App, Plugin, PluginSettingTab, Setting } from "obsidian";
-import { createErrorBlockHtml, renderMermaidCodeToSvg } from "@guangyiliushan/mduml-runtime-mermaid";
-import { createPlantUmlRenderer } from "@guangyiliushan/mduml-renderer-plantuml";
+import { createErrorBlockHtml, renderMermaidCodeToSvg } from "@mduml/runtime-mermaid";
+import { createPlantUmlRenderer } from "@mduml/renderer-plantuml";
 
 type UmlFlowObsidianSettings = {
   enabled: boolean;
