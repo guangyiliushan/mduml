@@ -17,7 +17,7 @@ permissions:
 jobs:
   publish:
     name: Publish Package
-    if: github.repository == 'your-org/mduml' && secrets.NPM_TOKEN != ''
+    if: secrets.NPM_TOKEN != ''
     runs-on: ubuntu-latest
     
     steps:

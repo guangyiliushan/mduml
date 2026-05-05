@@ -13,7 +13,9 @@ module.exports = {
     [
       "@semantic-release/npm",
       {
-        npmPublish: false
+        npmPublish: false,
+        // Skip version check for unpublished packages
+        pkgRoot: "."
       }
     ],
     [
@@ -25,4 +27,3 @@ module.exports = {
     ]
   ]
 };
-
