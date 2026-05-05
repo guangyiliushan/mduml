@@ -1,0 +1,24 @@
+{
+  "name": "@guangyiliushan/mduml-adapter-obsidian",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "./dist/main.js",
+  "scripts": {
+    "build": "tsup",
+    "clean": "rimraf dist",
+    "test": "node -e \"process.exit(0)\"",
+    "package:plugin": "node ./scripts/package-plugin.mjs"
+  },
+  "dependencies": {
+    "@guangyiliushan/mduml-runtime-mermaid": "0.1.0",
+    "@guangyiliushan/mduml-renderer-plantuml": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "obsidian": "^1.6.5",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.3"
+  }
+}

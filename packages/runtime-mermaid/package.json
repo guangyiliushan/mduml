@@ -1,0 +1,30 @@
+{
+  "name": "@guangyiliushan/mduml-runtime-mermaid",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "clean": "rimraf dist",
+    "test": "node ./dist/tests/smoke-test.cjs"
+  },
+  "dependencies": {
+    "mermaid": "^11.0.0"
+  },
+  "devDependencies": {
+    "jsdom": "^26.0.0",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.3"
+  }
+}

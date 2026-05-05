@@ -1,0 +1,28 @@
+{
+  "name": "uml-flow",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @guangyiliushan/mduml-core && npm run build -w @guangyiliushan/mduml-renderer-plantuml && npm run build -w @guangyiliushan/mduml-renderer-mermaid && npm run build -w @guangyiliushan/mduml-runtime-mermaid && npm run build -w @guangyiliushan/mduml-renderer-mermaid-playwright && npm run build -w @guangyiliushan/mduml-adapter-markdown-it && npm run build -w @guangyiliushan/mduml-adapter-vscode && npm run build -w @guangyiliushan/mduml-adapter-obsidian",
+    "clean": "npm -ws run clean",
+    "test": "npm run test -w @guangyiliushan/mduml-core && npm run test -w @guangyiliushan/mduml-renderer-plantuml && npm run test -w @guangyiliushan/mduml-runtime-mermaid && npm run test -w @guangyiliushan/mduml-adapter-markdown-it",
+    "release:tag": "npm exec -w @guangyiliushan/mduml-core -- npx semantic-release -e ../../release.tag.cjs && npm exec -w @guangyiliushan/mduml-renderer-plantuml -- npx semantic-release -e ../../release.tag.cjs && npm exec -w @guangyiliushan/mduml-renderer-mermaid -- npx semantic-release -e ../../release.tag.cjs && npm exec -w @guangyiliushan/mduml-runtime-mermaid -- npx semantic-release -e ../../release.tag.cjs && npm exec -w @guangyiliushan/mduml-renderer-mermaid-playwright -- npx semantic-release -e ../../release.tag.cjs && npm exec -w @guangyiliushan/mduml-adapter-markdown-it -- npx semantic-release -e ../../release.tag.cjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^11.0.1",
+    "@semantic-release/npm": "^12.0.1",
+    "@semantic-release/release-notes-generator": "^14.0.3",
+    "rimraf": "^6.0.1",
+    "semantic-release": "^24.2.7",
+    "semantic-release-monorepo": "^8.0.2",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.3"
+  }
+}

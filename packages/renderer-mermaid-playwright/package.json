@@ -1,0 +1,36 @@
+{
+  "name": "@guangyiliushan/mduml-renderer-mermaid-playwright",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "clean": "rimraf dist",
+    "test": "node -e \"process.exit(0)\""
+  },
+  "peerDependencies": {
+    "playwright": "^1.44.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@guangyiliushan/mduml-core": "0.1.0",
+    "mermaid": "^11.0.0"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.3"
+  }
+}

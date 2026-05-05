@@ -1,0 +1,11 @@
+{
+  "id": "uml-flow",
+  "name": "UML Flow",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "在 Obsidian 中渲染 Mermaid/PlantUML 流程图（横平竖直优先）",
+  "author": "uml-flow",
+  "authorUrl": "",
+  "isDesktopOnly": false
+}
+
