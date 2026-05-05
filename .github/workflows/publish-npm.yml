@@ -17,7 +17,7 @@ permissions:
 jobs:
   publish:
     name: Publish Package
-    if: secrets.NPM_TOKEN != ''
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
     runs-on: ubuntu-latest
     
     steps:
@@ -25,6 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -61,7 +62,28 @@ jobs:
             exit 1
           fi
 
+      - name: Configure npm authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Check if already published
+        id: check
+        run: |
+          PACKAGE_NAME="${{ steps.resolve.outputs.workspaceName }}"
+          VERSION="${{ steps.resolve.outputs.version }}"
+          
+          if npm view "$PACKAGE_NAME@$VERSION" version &>/dev/null; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "⚠️ Package $PACKAGE_NAME@$VERSION is already published"
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+            echo "✅ Package $PACKAGE_NAME@$VERSION is not published yet"
+          fi
+
       - name: Publish to NPM
+        if: steps.check.outputs.already_published == 'false'
         run: |
           echo "Publishing ${{ steps.resolve.outputs.workspaceName }}@${{ steps.resolve.outputs.version }}"
           npm publish --workspace "${{ steps.resolve.outputs.workspaceName }}" --access public

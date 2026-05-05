@@ -10,19 +10,18 @@ module.exports = {
         changelogFile: "CHANGELOG.md"
       }
     ],
-    [
-      "@semantic-release/npm",
-      {
-        npmPublish: false,
-        // Skip version check for unpublished packages
-        pkgRoot: "."
-      }
-    ],
+    // Removed @semantic-release/npm - we only want to create tags, not publish
     [
       "@semantic-release/git",
       {
         assets: ["package.json", "CHANGELOG.md"],
         message: "chore(release): ${nextRelease.gitTag} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        successComment: false
       }
     ]
   ]
