@@ -19,7 +19,7 @@
     "test": "node ./dist/tests/smoke-test.cjs"
   },
   "dependencies": {
-    "mermaid": "^11.0.0"
+    "mermaid": "^11.14.0"
   },
   "devDependencies": {
     "jsdom": "^26.0.0",
