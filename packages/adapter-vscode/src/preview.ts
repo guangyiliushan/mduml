@@ -1,3 +1,6 @@
+import mermaidModule from "mermaid";
+import elkLayouts from "@mermaid-js/layout-elk";
+
 type MermaidRuntimeConfig = {
   debug?: boolean;
   layout?: { useElk?: boolean; elkEdgeRouting?: "ORTHOGONAL" | "SPLINES" | "POLYLINE" };
@@ -17,10 +20,22 @@ type MermaidApi = {
   render: (id: string, code: string) => Promise<{ svg: string }>;
 };
 
+let cachedMermaid: MermaidApi | null = null;
+
 const getMermaidApi = (): MermaidApi | null => {
-  const candidate = (globalThis as any).mermaid;
+  const candidate = cachedMermaid ?? ((mermaidModule as any).default ?? (mermaidModule as any));
   if (!candidate) return null;
-  return (candidate as any).default ?? candidate;
+  const api = (candidate as any).default ?? candidate;
+
+  if ((api as any).__umlFlowElkRegistered !== true && typeof (api as any).registerLayoutLoaders === "function") {
+    try {
+      (api as any).registerLayoutLoaders(elkLayouts as any);
+    } catch {}
+    (api as any).__umlFlowElkRegistered = true;
+  }
+
+  cachedMermaid = api;
+  return api;
 };
 
 const buildInitConfig = (runtimeConfig: MermaidRuntimeConfig) => {
@@ -35,6 +50,9 @@ const buildInitConfig = (runtimeConfig: MermaidRuntimeConfig) => {
         "elk.algorithm": "layered",
         "elk.direction": "DOWN",
         "elk.edgeRouting": elkEdgeRouting,
+        "elk.portConstraints": "FIXED_SIDE",
+        "elk.layered.nodePlacement.favorStraightEdges": true,
+        "elk.layered.spacing.edgeNodeBetweenLayers": 20,
         "elk.layered.spacing.nodeNodeBetweenLayers": 40
       }
     : undefined;

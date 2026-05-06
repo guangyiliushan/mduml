@@ -65,6 +65,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build core packages
+        run: pnpm -w --filter @mduml/core --filter @mduml/renderer-plantuml --filter @mduml/renderer-mermaid --filter @mduml/runtime-mermaid --filter @mduml/renderer-mermaid-playwright --filter @mduml/adapter-markdown-it run build
+
       - name: Build VS Code extension
         run: pnpm -w --filter @mduml/adapter-vscode run build
 

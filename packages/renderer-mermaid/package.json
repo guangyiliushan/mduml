@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@mduml/core": "workspace:*",
+    "@mermaid-js/layout-elk": "^0.2.1",
     "dompurify": "^3.2.7",
     "jsdom": "^26.0.0",
     "mermaid": "^11.14.0"

@@ -43,6 +43,7 @@ export const renderMermaidCodeToSvg = async (input: RenderMermaidCodeInput): Pro
 
   try {
     const mermaid = resolveMermaidApi(input.mermaid);
+    await ensureElkRegistered(mermaid);
     const config = normalizeRuntimeConfig(input.config);
     mermaid.initialize(buildMermaidInitConfig(config));
     const id = `uml_flow_${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -125,6 +126,9 @@ const buildMermaidInitConfig = (config: Required<MermaidRuntimeConfig>) => {
         "elk.algorithm": "layered",
         "elk.direction": "DOWN",
         "elk.edgeRouting": config.layout.elkEdgeRouting,
+        "elk.portConstraints": "FIXED_SIDE",
+        "elk.layered.nodePlacement.favorStraightEdges": true,
+        "elk.layered.spacing.edgeNodeBetweenLayers": 20,
         "elk.layered.spacing.nodeNodeBetweenLayers": 40
       }
     : undefined;
@@ -141,6 +145,19 @@ const buildMermaidInitConfig = (config: Required<MermaidRuntimeConfig>) => {
     },
     elk
   } as any;
+};
+
+const ensureElkRegistered = async (mermaid: any) => {
+  if (!mermaid || typeof mermaid !== "object") return;
+  if (mermaid.__umlFlowElkRegistered === true) return;
+  if (typeof mermaid.registerLayoutLoaders !== "function") return;
+  try {
+    const { default: elkLayouts } = await import("@mermaid-js/layout-elk");
+    mermaid.registerLayoutLoaders(elkLayouts);
+    mermaid.__umlFlowElkRegistered = true;
+  } catch {
+    mermaid.__umlFlowElkRegistered = true;
+  }
 };
 
 const parseBlockConfig = (raw: string | null): MermaidRuntimeConfig | undefined => {

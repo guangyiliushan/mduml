@@ -54,6 +54,10 @@ const renderMermaidToSvg = async (code: string, config: MermaidRendererConfig, d
 
     const mermaidModule = await import("mermaid");
     const mermaid = (mermaidModule as any).default ?? (mermaidModule as any);
+    try {
+      const { default: elkLayouts } = await import("@mermaid-js/layout-elk");
+      mermaid.registerLayoutLoaders?.(elkLayouts);
+    } catch {}
     mermaid.initialize(buildMermaidInitConfig(config, debug));
 
     const id = `uml_flow_${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -74,6 +78,9 @@ const buildMermaidInitConfig = (config: MermaidRendererConfig, debug: boolean) =
         "elk.algorithm": "layered",
         "elk.direction": "DOWN",
         "elk.edgeRouting": config.elkEdgeRouting,
+        "elk.portConstraints": "FIXED_SIDE",
+        "elk.layered.nodePlacement.favorStraightEdges": true,
+        "elk.layered.spacing.edgeNodeBetweenLayers": 20,
         "elk.layered.spacing.nodeNodeBetweenLayers": 40
       }
     : undefined;
