@@ -1,3 +1,10 @@
+## [1.0.6](https://github.com/guangyiliushan/mduml/compare/v1.0.5...v1.0.6) (2026-05-06)
+
+
+### Bug Fixes
+
+* update test scripts and build configurations for ESM compatibility ([47cc34c](https://github.com/guangyiliushan/mduml/commit/47cc34cb392865311eec852b7cd3c374b207a28c))
+
 ## [1.0.5](https://github.com/guangyiliushan/mduml/compare/v1.0.4...v1.0.5) (2026-05-06)
 
 
