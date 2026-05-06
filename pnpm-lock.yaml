@@ -213,6 +213,9 @@ importers:
         specifier: ^11.14.0
         version: 11.14.0
     devDependencies:
+      '@types/jsdom':
+        specifier: ^21.1.7
+        version: 21.1.7
       jsdom:
         specifier: ^26.0.0
         version: 26.1.0
