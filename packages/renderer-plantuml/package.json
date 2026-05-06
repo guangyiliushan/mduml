@@ -1,6 +1,6 @@
 {
   "name": "@mduml/renderer-plantuml",
-  "version": "1.0.8",
+  "version": "1.1.0",
   "private": false,
   "type": "module",
   "main": "./dist/index.cjs",

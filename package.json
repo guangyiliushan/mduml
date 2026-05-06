@@ -1,7 +1,7 @@
 {
   "name": "uml-flow",
   "private": true,
-  "version": "1.0.8",
+  "version": "1.1.0",
   "packageManager": "pnpm@10.33.3",
   "workspaces": [
     "packages/*"
