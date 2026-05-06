@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: release-tag-${{ github.ref }}
@@ -41,10 +42,52 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Snapshot tags before release
+        shell: bash
+        run: |
+          git tag --list --sort=refname > /tmp/tags-before.txt
+
       - name: Generate semantic-release tags
         run: npm run release:tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dispatch packaging workflows for new adapter tags
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git tag --list --sort=refname > /tmp/tags-after.txt
+          NEW_TAGS=$(comm -13 /tmp/tags-before.txt /tmp/tags-after.txt)
+          echo "New tags:"
+          echo "$NEW_TAGS"
+
+          dispatch() {
+            local workflow_file="$1"
+            local tag="$2"
+            export TAG="$tag"
+            BODY=$(node -e "console.log(JSON.stringify({ref:'main',inputs:{ref:process.env.TAG,tag:process.env.TAG}}))")
+            curl -sS -X POST \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow_file}/dispatches" \
+              -d "$BODY" \
+              >/dev/null
+          }
+
+          while IFS= read -r t; do
+            [ -n "$t" ] || continue
+            case "$t" in
+              @mduml/adapter-vscode-*|@mduml/adapter-vscode@*)
+                dispatch "package-vsix.yml" "$t"
+                ;;
+              @mduml/adapter-obsidian-*|@mduml/adapter-obsidian@*)
+                dispatch "package-obsidian.yml" "$t"
+                ;;
+              *)
+                ;;
+            esac
+          done <<< "$NEW_TAGS"
 
       - name: Verify tags created
         run: |
