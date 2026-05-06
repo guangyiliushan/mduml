@@ -19,6 +19,8 @@ jobs:
     name: Publish Package
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
     runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     
     steps:
       - name: Checkout repository
@@ -76,12 +78,18 @@ jobs:
             echo "publishable=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Ensure NPM_TOKEN is set
+        if: steps.publishable.outputs.publishable == 'true' && env.NPM_TOKEN == ''
+        shell: bash
+        run: |
+          echo "Error: NPM_TOKEN is not set"
+          exit 1
+
       - name: Configure npm authentication
         if: steps.publishable.outputs.publishable == 'true'
+        shell: bash
         run: |
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Check if already published
         id: check
@@ -104,7 +112,7 @@ jobs:
           echo "Publishing ${{ steps.resolve.outputs.workspaceName }}@${{ steps.resolve.outputs.version }}"
           npm publish --workspace "${{ steps.resolve.outputs.workspaceName }}" --access public
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
 
       - name: Publish success
         if: steps.publishable.outputs.publishable == 'true' && success()
