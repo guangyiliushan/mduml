@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/guangyiliushan/mduml/compare/v1.0.2...v1.0.3) (2026-05-06)
+
+
+### Bug Fixes
+
+* stabilize workspace dependency resolution in CI ([7114afc](https://github.com/guangyiliushan/mduml/commit/7114afc49bc75b44f9bc2922e885a452c2c4b583))
+
 ## [1.0.2](https://github.com/guangyiliushan/mduml/compare/v1.0.1...v1.0.2) (2026-05-06)
 
 
