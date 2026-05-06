@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/guangyiliushan/mduml/compare/v1.0.0...v1.0.1) (2026-05-06)
+
+
+### Bug Fixes
+
+* ensure dist is included in published package ([6c96922](https://github.com/guangyiliushan/mduml/commit/6c96922a1a36c7ceda218bcdb56618942454d59e))
+
 # 1.0.0 (2026-05-05)
 
 
