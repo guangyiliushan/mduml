@@ -1,6 +1,6 @@
 {
   "name": "@mduml/renderer-mermaid-playwright",
-  "version": "0.1.0",
+  "version": "1.0.8",
   "private": false,
   "type": "module",
   "main": "./dist/index.js",

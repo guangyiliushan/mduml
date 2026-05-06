@@ -2,13 +2,17 @@
   "name": "uml-flow",
   "displayName": "UML Flow",
   "description": "在 VS Code Markdown 预览中渲染 Mermaid/PlantUML 流程图（横平竖直优先）",
-  "version": "0.1.0",
+  "version": "1.0.8",
   "publisher": "uml-flow",
   "engines": {
     "vscode": "^1.90.0"
   },
-  "categories": ["Other"],
-  "activationEvents": ["onLanguage:markdown"],
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "markdown.previewScripts": [
