@@ -1,3 +1,10 @@
+## [1.0.7](https://github.com/guangyiliushan/mduml/compare/v1.0.6...v1.0.7) (2026-05-06)
+
+
+### Bug Fixes
+
+* add lockstep versioning and manual release triggers ([66abd64](https://github.com/guangyiliushan/mduml/commit/66abd643497c730f83678d6368745e10b1a86794))
+
 ## [1.0.6](https://github.com/guangyiliushan/mduml/compare/v1.0.5...v1.0.6) (2026-05-06)
 
 
