@@ -20,9 +20,9 @@
     "test": "node ./dist/tests/smoke-test.js"
   },
   "dependencies": {
-    "@mduml/core": "0.1.0",
-    "@mduml/renderer-mermaid-playwright": "0.1.0",
-    "@mduml/renderer-plantuml": "0.1.0"
+    "@mduml/core": "workspace:*",
+    "@mduml/renderer-mermaid-playwright": "workspace:*",
+    "@mduml/renderer-plantuml": "workspace:*"
   },
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",

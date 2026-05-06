@@ -22,7 +22,7 @@
     "test": "node ./dist/tests/smoke-test.cjs"
   },
   "dependencies": {
-    "@mduml/core": "0.1.0"
+    "@mduml/core": "workspace:*"
   },
   "devDependencies": {
     "rimraf": "^6.0.1",

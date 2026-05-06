@@ -11,8 +11,8 @@
     "package:plugin": "node ./scripts/package-plugin.mjs"
   },
   "dependencies": {
-    "@mduml/runtime-mermaid": "0.1.0",
-    "@mduml/renderer-plantuml": "0.1.0"
+    "@mduml/runtime-mermaid": "workspace:*",
+    "@mduml/renderer-plantuml": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -11,7 +11,7 @@
     "package:vsix": "node ./scripts/package-vsix.mjs"
   },
   "dependencies": {
-    "@mduml/adapter-markdown-it": "0.1.0",
+    "@mduml/adapter-markdown-it": "workspace:*",
     "markdown-it": "^14.1.0",
     "mermaid": "^11.14.0"
   },

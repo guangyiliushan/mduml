@@ -28,7 +28,7 @@
     }
   },
   "dependencies": {
-    "@mduml/core": "0.1.0",
+    "@mduml/core": "workspace:*",
     "mermaid": "^11.14.0"
   },
   "devDependencies": {
