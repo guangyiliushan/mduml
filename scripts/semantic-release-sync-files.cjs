@@ -16,12 +16,75 @@ const findRepoRoot = (startDir) => {
   return null;
 };
 
+const syncLockstepVersions = (repoRoot, nextVersion) => {
+  const rootPackageJsonPath = path.join(repoRoot, "package.json");
+  if (fs.existsSync(rootPackageJsonPath)) {
+    const rootPackageJson = readJson(rootPackageJsonPath);
+    if (rootPackageJson.version !== nextVersion) {
+      rootPackageJson.version = nextVersion;
+      writeJson(rootPackageJsonPath, rootPackageJson);
+    }
+  }
+
+  const packagesDir = path.join(repoRoot, "packages");
+  if (!fs.existsSync(packagesDir)) return;
+
+  const dirs = fs
+    .readdirSync(packagesDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name);
+
+  for (const dir of dirs) {
+    const pkgDir = path.join(packagesDir, dir);
+    const pkgJsonPath = path.join(pkgDir, "package.json");
+    if (!fs.existsSync(pkgJsonPath)) continue;
+
+    const pkgJson = readJson(pkgJsonPath);
+    const pkgName = String(pkgJson.name || "");
+
+    if (pkgJson.version !== nextVersion) {
+      pkgJson.version = nextVersion;
+      writeJson(pkgJsonPath, pkgJson);
+    }
+
+    if (pkgName === "@mduml/adapter-vscode") {
+      const extensionPackageJsonPath = path.join(pkgDir, "extension.package.json");
+      if (fs.existsSync(extensionPackageJsonPath)) {
+        const extensionManifest = readJson(extensionPackageJsonPath);
+        if (extensionManifest.version !== nextVersion) {
+          extensionManifest.version = nextVersion;
+          writeJson(extensionPackageJsonPath, extensionManifest);
+        }
+      }
+    }
+
+    if (pkgName === "@mduml/adapter-obsidian") {
+      const obsidianManifestPath = path.join(pkgDir, "manifest.json");
+      if (fs.existsSync(obsidianManifestPath)) {
+        const obsidianManifest = readJson(obsidianManifestPath);
+        if (obsidianManifest.version !== nextVersion) {
+          obsidianManifest.version = nextVersion;
+          writeJson(obsidianManifestPath, obsidianManifest);
+        }
+      }
+    }
+  }
+};
+
 module.exports = {
   prepare: async (_pluginConfig, context) => {
     const nextVersion = context?.nextRelease?.version;
     if (!nextVersion) return;
 
     const cwd = process.cwd();
+    const versioning = process.env.UML_FLOW_VERSIONING ?? "independent";
+    if (versioning === "lockstep") {
+      const repoRoot = findRepoRoot(cwd);
+      if (!repoRoot) return;
+      syncLockstepVersions(repoRoot, nextVersion);
+      return;
+    }
+
     const packageJsonPath = path.join(cwd, "package.json");
     if (!fs.existsSync(packageJsonPath)) return;
 

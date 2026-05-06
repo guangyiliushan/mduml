@@ -2,6 +2,12 @@ name: Create Release Tags
 
 on:
   workflow_dispatch:
+    inputs:
+      versioning:
+        description: "Versioning strategy: independent (per-package tags) or lockstep (single vX.Y.Z tag + sync all packages)"
+        required: false
+        default: independent
+        type: string
   push:
     branches:
       - main
@@ -65,9 +71,15 @@ jobs:
           git tag --list --sort=refname > /tmp/tags-before.txt
 
       - name: Generate semantic-release tags
-        run: pnpm run release:tag
         env:
+          UML_FLOW_VERSIONING: ${{ github.event_name == 'workflow_dispatch' && inputs.versioning || 'independent' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${UML_FLOW_VERSIONING}" = "lockstep" ]; then
+            pnpm exec -- npx semantic-release -e ./release.tag.cjs
+          else
+            pnpm run release:tag
+          fi
 
       - name: Dispatch packaging workflows for new adapter tags
         shell: bash
@@ -92,6 +104,18 @@ jobs:
               >/dev/null
           }
 
+          dispatch_release() {
+            local tag="$1"
+            export TAG="$tag"
+            BODY=$(node -e "console.log(JSON.stringify({ref:'main',inputs:{tag:process.env.TAG}}))")
+            curl -sS -X POST \
+              -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/release-github.yml/dispatches" \
+              -d "$BODY" \
+              >/dev/null
+          }
+
           while IFS= read -r t; do
             [ -n "$t" ] || continue
             case "$t" in
@@ -100,6 +124,18 @@ jobs:
                 ;;
               @mduml/adapter-obsidian-*|@mduml/adapter-obsidian@*)
                 dispatch "package-obsidian.yml" "$t"
+                ;;
+              v*|release-v*)
+                dispatch "package-vsix.yml" "$t"
+                dispatch "package-obsidian.yml" "$t"
+                ;;
+              *)
+                ;;
+            esac
+
+            case "$t" in
+              @mduml/*|v*|release-v*)
+                dispatch_release "$t"
                 ;;
               *)
                 ;;
