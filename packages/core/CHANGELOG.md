@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/guangyiliushan/mduml/compare/v1.0.3...v1.0.4) (2026-05-06)
+
+
+### Bug Fixes
+
+* add publish mode support to npm workflow ([7151cd0](https://github.com/guangyiliushan/mduml/commit/7151cd00b83760cf4f00d1ce41d693765d1af626))
+
 ## [1.0.3](https://github.com/guangyiliushan/mduml/compare/v1.0.2...v1.0.3) (2026-05-06)
 
 
