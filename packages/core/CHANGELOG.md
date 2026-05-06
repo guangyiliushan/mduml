@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/guangyiliushan/mduml/compare/v1.0.4...v1.0.5) (2026-05-06)
+
+
+### Bug Fixes
+
+* ci expand tag triggers and add publish dispatch ([6708cf6](https://github.com/guangyiliushan/mduml/commit/6708cf6bac4f7692e712955254545386a0ed78d9))
+
 ## [1.0.4](https://github.com/guangyiliushan/mduml/compare/v1.0.3...v1.0.4) (2026-05-06)
 
 
