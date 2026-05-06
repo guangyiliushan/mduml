@@ -16,9 +16,12 @@ on:
     tags:
       - "@mduml/*"
       - "release-v*"
+      - "v*"
 
 permissions:
   contents: read
+  id-token: write
+  actions: read
 
 jobs:
   publish:

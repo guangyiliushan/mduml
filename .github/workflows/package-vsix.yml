@@ -17,6 +17,8 @@ on:
       - "@mduml/adapter-vscode-*"
       - "@mduml/adapter-vscode@*"
       - "vscode-v*"
+      - "release-v*"
+      - "v*"
 
 permissions:
   contents: write

@@ -17,6 +17,8 @@ on:
       - "@mduml/adapter-obsidian-*"
       - "@mduml/adapter-obsidian@*"
       - "obsidian-v*"
+      - "release-v*"
+      - "v*"
 
 permissions:
   contents: write

@@ -106,6 +106,19 @@ jobs:
             esac
           done <<< "$NEW_TAGS"
 
+      - name: Dispatch publish workflow (all mode)
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BODY=$(node -e "console.log(JSON.stringify({ref:'main',inputs:{mode:'all'}}))")
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/publish-npm.yml/dispatches" \
+            -d "$BODY" \
+            >/dev/null
+
       - name: Verify tags created
         run: |
           echo "Recent tags:"

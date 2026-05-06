@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "@mduml/*"
+      - "release-v*"
+      - "v*"
 
 permissions:
   contents: write
