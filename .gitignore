@@ -75,3 +75,6 @@ yarn-error.log
 
 # Obsidian specific
 .obsidian
+
+*.tar.gz
+*.tgz

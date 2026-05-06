@@ -49,20 +49,35 @@ jobs:
           
           # Parse and validate
           WORKSPACE_NAME=$(node -e "const j=JSON.parse(require('fs').readFileSync('/tmp/uml-flow-tag.json','utf8')); if(!j.ok) { console.error('Invalid tag'); process.exit(1); } console.log(j.workspaceName);")
+          WORKSPACE_DIR=$(node -e "const j=JSON.parse(require('fs').readFileSync('/tmp/uml-flow-tag.json','utf8')); if(!j.ok) process.exit(1); console.log(j.workspaceDir);")
           VERSION=$(node -e "const j=JSON.parse(require('fs').readFileSync('/tmp/uml-flow-tag.json','utf8')); console.log(j.version);")
           
           echo "workspaceName=$WORKSPACE_NAME" >> "$GITHUB_OUTPUT"
+          echo "workspaceDir=$WORKSPACE_DIR" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Publishing $WORKSPACE_NAME@$VERSION"
 
       - name: Verify package exists
         run: |
-          if [ ! -d "packages/${{ steps.resolve.outputs.workspaceName }}" ]; then
+          if [ ! -d "packages/${{ steps.resolve.outputs.workspaceDir }}" ]; then
             echo "Error: Package directory not found"
             exit 1
           fi
 
+      - name: Check if package is publishable
+        id: publishable
+        shell: bash
+        run: |
+          PRIVATE=$(node -e "const p=require('./packages/${{ steps.resolve.outputs.workspaceDir }}/package.json'); console.log(String(!!p.private));")
+          if [ "$PRIVATE" = "true" ]; then
+            echo "publishable=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping publish: ${{ steps.resolve.outputs.workspaceName }} is private"
+          else
+            echo "publishable=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configure npm authentication
+        if: steps.publishable.outputs.publishable == 'true'
         run: |
           echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
         env:
@@ -70,6 +85,7 @@ jobs:
 
       - name: Check if already published
         id: check
+        if: steps.publishable.outputs.publishable == 'true'
         run: |
           PACKAGE_NAME="${{ steps.resolve.outputs.workspaceName }}"
           VERSION="${{ steps.resolve.outputs.version }}"
@@ -83,7 +99,7 @@ jobs:
           fi
 
       - name: Publish to NPM
-        if: steps.check.outputs.already_published == 'false'
+        if: steps.publishable.outputs.publishable == 'true' && steps.check.outputs.already_published == 'false'
         run: |
           echo "Publishing ${{ steps.resolve.outputs.workspaceName }}@${{ steps.resolve.outputs.version }}"
           npm publish --workspace "${{ steps.resolve.outputs.workspaceName }}" --access public
@@ -91,6 +107,6 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish success
-        if: success()
+        if: steps.publishable.outputs.publishable == 'true' && success()
         run: |
           echo "✅ Successfully published ${{ steps.resolve.outputs.workspaceName }}@${{ steps.resolve.outputs.version }}"

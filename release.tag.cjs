@@ -1,3 +1,5 @@
+const path = require("node:path");
+
 module.exports = {
   extends: "semantic-release-monorepo",
   branches: ["main"],
@@ -10,7 +12,7 @@ module.exports = {
         changelogFile: "CHANGELOG.md"
       }
     ],
-    // Removed @semantic-release/npm - we only want to create tags, not publish
+    path.join(__dirname, "scripts", "semantic-release-sync-files.cjs"),
     [
       "@semantic-release/git",
       {

@@ -22,17 +22,19 @@ const workspaces = packageDirs
   })
   .sort((a, b) => b.name.length - a.name.length);
 
-const semverLike = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+].+)?$/;
+const semverLike = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+].+)?$/;
 
 for (const ws of workspaces) {
-  const prefix = `${ws.name}-`;
-  if (!tag.startsWith(prefix)) continue;
-  const version = tag.slice(prefix.length);
-  if (!semverLike.test(version)) continue;
-  process.stdout.write(JSON.stringify({ ok: true, workspaceName: ws.name, workspaceDir: ws.dir, version }));
-  process.exit(0);
+  const prefixes = [`${ws.name}-`, `${ws.name}@`];
+  for (const prefix of prefixes) {
+    if (!tag.startsWith(prefix)) continue;
+    const rawVersion = tag.slice(prefix.length);
+    if (!semverLike.test(rawVersion)) continue;
+    const version = rawVersion.startsWith("v") ? rawVersion.slice(1) : rawVersion;
+    process.stdout.write(JSON.stringify({ ok: true, workspaceName: ws.name, workspaceDir: ws.dir, version }));
+    process.exit(0);
+  }
 }
 
 process.stdout.write(JSON.stringify({ ok: false, message: "无法从 tag 解析 workspace" }));
 process.exit(1);
-
