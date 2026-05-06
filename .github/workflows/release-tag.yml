@@ -6,7 +6,7 @@ on:
       versioning:
         description: "Versioning strategy: independent (per-package tags) or lockstep (single vX.Y.Z tag + sync all packages)"
         required: false
-        default: independent
+        default: lockstep
         type: string
   push:
     branches:
@@ -72,7 +72,7 @@ jobs:
 
       - name: Generate semantic-release tags
         env:
-          UML_FLOW_VERSIONING: ${{ github.event_name == 'workflow_dispatch' && inputs.versioning || 'independent' }}
+          UML_FLOW_VERSIONING: ${{ github.event_name == 'workflow_dispatch' && inputs.versioning || 'lockstep' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "${UML_FLOW_VERSIONING}" = "lockstep" ]; then
@@ -80,6 +80,47 @@ jobs:
           else
             pnpm run release:tag
           fi
+
+      - name: Create per-package tags (lockstep)
+        if: (github.event_name == 'workflow_dispatch' && inputs.versioning == 'lockstep') || github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(git tag --list 'v[0-9]*' --sort=-version:refname | head -n 1 | sed 's/^v//')"
+          if [ -z "$VERSION" ]; then
+            echo "Error: cannot detect lockstep version tag" >&2
+            exit 1
+          fi
+
+          export VERSION
+          node - <<'NODE' > /tmp/lockstep-package-tags.txt
+          const fs = require("node:fs");
+          const path = require("node:path");
+          const version = process.env.VERSION;
+          const packagesDir = path.join(process.cwd(), "packages");
+          const dirs = fs.readdirSync(packagesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+          const tags = [];
+          for (const dir of dirs) {
+            const pkgJsonPath = path.join(packagesDir, dir, "package.json");
+            if (!fs.existsSync(pkgJsonPath)) continue;
+            const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
+            const name = String(pkg.name || "");
+            if (!name) continue;
+            tags.push(`${name}-v${version}`);
+          }
+          process.stdout.write(tags.join("\n"));
+          NODE
+
+          export VERSION
+          echo "Per-package tags:"
+          cat /tmp/lockstep-package-tags.txt
+
+          while IFS= read -r t; do
+            [ -n "$t" ] || continue
+            git tag "$t" 2>/dev/null || true
+          done < /tmp/lockstep-package-tags.txt
+
+          git push --tags
 
       - name: Dispatch packaging workflows for new adapter tags
         shell: bash

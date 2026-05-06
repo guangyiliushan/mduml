@@ -6,7 +6,7 @@ on:
       mode:
         description: "Publish mode: single (publish 1 package from @mduml/* tag) or all (publish all public workspace packages at current ref)"
         required: false
-        default: "single"
+        default: "all"
         type: string
       tag:
         description: "Tag to publish (required for single mode when manually triggered)"

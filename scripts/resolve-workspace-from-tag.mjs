@@ -36,5 +36,11 @@ for (const ws of workspaces) {
   }
 }
 
+if (semverLike.test(tag)) {
+  const version = tag.startsWith("v") ? tag.slice(1) : tag;
+  process.stdout.write(JSON.stringify({ ok: true, mode: "all", version }));
+  process.exit(0);
+}
+
 process.stdout.write(JSON.stringify({ ok: false, message: "无法从 tag 解析 workspace" }));
 process.exit(1);
