@@ -41,16 +41,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.3
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build VS Code extension
-        run: npm run build -w @mduml/adapter-vscode
+        run: pnpm -w --filter @mduml/adapter-vscode run build
 
       - name: Package VSIX
-        run: npm run package:vsix -w @mduml/adapter-vscode
+        run: pnpm -w --filter @mduml/adapter-vscode run package:vsix
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

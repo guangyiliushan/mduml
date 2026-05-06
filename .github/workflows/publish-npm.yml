@@ -34,13 +34,18 @@ jobs:
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
-          cache: npm
+          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.3
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build packages
-        run: npm run build
+        run: pnpm run build
 
       - name: Resolve workspace from tag
         id: resolve
@@ -110,7 +115,7 @@ jobs:
         if: steps.publishable.outputs.publishable == 'true' && steps.check.outputs.already_published == 'false'
         run: |
           echo "Publishing ${{ steps.resolve.outputs.workspaceName }}@${{ steps.resolve.outputs.version }}"
-          npm publish --workspace "${{ steps.resolve.outputs.workspaceName }}" --access public
+          pnpm -w --filter "${{ steps.resolve.outputs.workspaceName }}" publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
 

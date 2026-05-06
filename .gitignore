@@ -9,8 +9,8 @@ build
 *.tsbuildinfo
 
 # Lock files (all package managers)
-# package-lock.json
-# yarn.lock
+package-lock.json
+yarn.lock
 # pnpm-lock.yaml
 npm-debug.log*
 yarn-debug.log*
