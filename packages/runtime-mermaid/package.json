@@ -16,7 +16,7 @@
   "scripts": {
     "build": "tsup",
     "clean": "rimraf dist",
-    "test": "node ./dist/tests/smoke-test.cjs"
+    "test": "node ./dist/tests/smoke-test.js"
   },
   "dependencies": {
     "mermaid": "^11.14.0"

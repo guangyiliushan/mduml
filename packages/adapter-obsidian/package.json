@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsup",
     "clean": "rimraf dist",
-    "test": "node -e \"process.exit(0)\"",
+    "test": "node -e \"const fs = require('node:fs'); if (!fs.existsSync('./dist/main.js')) process.exit(1);\"",
     "package:plugin": "node ./scripts/package-plugin.mjs"
   },
   "dependencies": {

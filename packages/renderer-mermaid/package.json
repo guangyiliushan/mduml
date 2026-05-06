@@ -19,7 +19,7 @@
   "scripts": {
     "build": "tsup",
     "clean": "rimraf dist",
-    "test": "node -e \"process.exit(0)\""
+    "test": "node --input-type=module -e \"const m = await import('./dist/index.js'); const r = m.createMermaidRenderer(); const out = await r.render({ code: 'graph TD\\nA-->B', language: 'mermaid', config: {} }, { debug: false }); if (!out?.content || !String(out.content).includes('<svg')) process.exit(1);\""
   },
   "dependencies": {
     "@mduml/core": "workspace:*",

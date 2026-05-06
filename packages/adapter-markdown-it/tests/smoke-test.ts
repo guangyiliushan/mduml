@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import MarkdownIt from "markdown-it";
-import { umlFlowMarkdownItPlugin } from "../src/index";
 
-const main = () => {
+const main = async () => {
+  const { umlFlowMarkdownItPlugin } = await import(new URL("../index.js", import.meta.url).href);
+
   const md = new MarkdownIt({ html: true });
   md.use(umlFlowMarkdownItPlugin, { debug: false, mode: "runtime" });
 
@@ -27,9 +28,7 @@ const main = () => {
   assert.ok(htmlAuto.includes("class=\"mermaid\""));
 };
 
-try {
-  main();
-} catch (error) {
+main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
-}
+});

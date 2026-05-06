@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { __test__ } from "../src/index";
 
-const main = () => {
+const main = async () => {
+  const { __test__ } = await import(new URL("../index.js", import.meta.url).href);
   const input = "@startuml\nAlice -> Bob: Hello\n@enduml";
   const output = __test__.injectPlantUmlOrthoStyle(input, 0);
   assert.ok(output.includes("skinparam linetype ortho"));
@@ -9,9 +9,7 @@ const main = () => {
   assert.ok(output.indexOf("@startuml") < output.indexOf("skinparam linetype ortho"));
 };
 
-try {
-  main();
-} catch (error) {
+main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
-}
+});

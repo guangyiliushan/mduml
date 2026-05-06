@@ -11,6 +11,9 @@ export default defineConfig([
     format: ["cjs"],
     external: ["vscode"],
     noExternal: ["@mduml/adapter-markdown-it"],
+    esbuildOptions(options) {
+      options.conditions = ["require", "node", "default"];
+    },
     splitting: false,
     treeshake: false,
     target: "es2022"

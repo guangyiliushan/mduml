@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": false,
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
@@ -11,6 +12,7 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
       "import": "./dist/index.js"
     }
   },
@@ -23,6 +25,9 @@
     "@mduml/core": "workspace:*",
     "@mduml/renderer-mermaid-playwright": "workspace:*",
     "@mduml/renderer-plantuml": "workspace:*"
+  },
+  "peerDependencies": {
+    "markdown-it": "^14.1.0"
   },
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",

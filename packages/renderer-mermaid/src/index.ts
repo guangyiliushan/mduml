@@ -1,5 +1,4 @@
 import { JSDOM } from "jsdom";
-import mermaidModule from "mermaid";
 import type { DiagramLanguage, RenderedOutput, Renderer, RendererContext } from "@mduml/core";
 
 export type MermaidRendererConfig = {
@@ -45,7 +44,7 @@ const renderMermaidToSvg = async (code: string, config: MermaidRendererConfig, d
   (globalThis as any).document = window.document;
 
   try {
-    const mermaid = (mermaidModule as any).default ?? (mermaidModule as any);
+    installSvgPolyfills(window);
 
     const dompurifyModule = await import("dompurify");
     const createDOMPurify = (dompurifyModule as any).default ?? (dompurifyModule as any);
@@ -53,6 +52,8 @@ const renderMermaidToSvg = async (code: string, config: MermaidRendererConfig, d
     (globalThis as any).DOMPurify = DOMPurify;
     (window as any).DOMPurify = DOMPurify;
 
+    const mermaidModule = await import("mermaid");
+    const mermaid = (mermaidModule as any).default ?? (mermaidModule as any);
     mermaid.initialize(buildMermaidInitConfig(config, debug));
 
     const id = `uml_flow_${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -86,4 +87,30 @@ const buildMermaidInitConfig = (config: MermaidRendererConfig, debug: boolean) =
     },
     elk
   } as any;
+};
+
+const installSvgPolyfills = (window: any) => {
+  const proto = window?.SVGElement?.prototype;
+  if (!proto) return;
+
+  if (typeof proto.getBBox !== "function") {
+    proto.getBBox = function getBBox() {
+      const text = String((this as any)?.textContent ?? "");
+      const fontSize = 16;
+      const width = Math.max(1, text.length) * fontSize * 0.6;
+      const height = fontSize;
+      return { x: 0, y: 0, width, height };
+    };
+  }
+
+  if (typeof proto.getComputedTextLength !== "function") {
+    proto.getComputedTextLength = function getComputedTextLength() {
+      const box = (this as any).getBBox?.();
+      return typeof box?.width === "number" ? box.width : 0;
+    };
+  }
+
+  const identity = () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 });
+  if (typeof proto.getCTM !== "function") proto.getCTM = identity;
+  if (typeof proto.getScreenCTM !== "function") proto.getScreenCTM = identity;
 };

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { createUmlFlowCore, createErrorBlockHtml, defaultCacheStore } from "../src/index";
 
 const main = async () => {
+  const { createUmlFlowCore, createErrorBlockHtml, defaultCacheStore } = await import(new URL("../index.js", import.meta.url).href);
+
   const cache = defaultCacheStore();
 
   const core = createUmlFlowCore({

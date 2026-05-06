@@ -17,7 +17,7 @@
   "scripts": {
     "build": "tsup",
     "clean": "rimraf dist",
-    "test": "node -e \"process.exit(0)\""
+    "test": "node --input-type=module -e \"const m = await import('./dist/index.js'); const r = m.createMermaidPlaywrightRenderer(); if (typeof r?.render !== 'function' || typeof r?.dispose !== 'function') process.exit(1);\""
   },
   "peerDependencies": {
     "playwright": "^1.44.0"
