@@ -1,3 +1,11 @@
+## [1.0.2](https://github.com/guangyiliushan/mduml/compare/v1.0.1...v1.0.2) (2026-05-06)
+
+
+### Bug Fixes
+
+* **lock:** add adapter package triggers and improve release process ([9d836a5](https://github.com/guangyiliushan/mduml/commit/9d836a5d1a4293340ac42aa8340495e77659c866))
+* **workflow:** add NPM_TOKEN environment variable and validation ([ebc6e61](https://github.com/guangyiliushan/mduml/commit/ebc6e614d1f01e018b7c6cbec93a9ff457586701))
+
 ## [1.0.1](https://github.com/guangyiliushan/mduml/compare/v1.0.0...v1.0.1) (2026-05-06)
 
 
