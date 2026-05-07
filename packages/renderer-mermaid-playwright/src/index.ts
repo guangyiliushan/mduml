@@ -17,6 +17,17 @@ export type MermaidPlaywrightConfig = {
     prefer?: "verticalThenHorizontal" | "vertical" | "horizontal";
     side?: { vertical?: "right" | "left"; horizontal?: "up" | "down" };
     sweep?: { vertical?: 0 | 1; horizontal?: 0 | 1 };
+    debug?: boolean;
+  };
+  layoutPolicy?: {
+    strictOrthogonalFlowchartOnly?: boolean;
+    gridSize?: number;
+    margin?: number;
+    gapX?: number;
+    gapY?: number;
+    stubMin?: number;
+    stubMax?: number;
+    allow45Fallback?: boolean;
   };
 };
 
@@ -70,19 +81,306 @@ export const createMermaidPlaywrightRenderer = (options?: { id?: string; config?
 
       page.setDefaultTimeout(timeoutMs);
       const result = await page.evaluate(
-        async (args: { code: string; initConfig: any; jumpLinks: any }) => {
-          const { code, initConfig, jumpLinks } = args;
+        async (args: { code: string; initConfig: any; jumpLinks: any; layoutPolicy: any; debug: boolean }) => {
+          const { code, initConfig, jumpLinks, layoutPolicy, debug } = args;
           const mermaid = (globalThis as any).mermaid;
           mermaid.initialize(initConfig);
           const id = `uml_flow_${Date.now()}_${Math.random().toString(16).slice(2)}`;
           const output = await mermaid.render(id, code);
           const svgText = output.svg;
-          if (!jumpLinks?.enabled) return svgText;
           try {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(svgText, "image/svg+xml");
-            const svg = doc.documentElement;
-            if (!svg || svg.tagName?.toLowerCase() !== "svg") return svgText;
+            const host = document.createElement("div");
+            host.style.cssText = "position:absolute;left:-99999px;top:-99999px;opacity:0;pointer-events:none;";
+            host.innerHTML = svgText;
+            const svg = host.querySelector("svg");
+            if (!svg) return svgText;
+            document.body.appendChild(host);
+
+            const onlyFlowchart = layoutPolicy?.strictOrthogonalFlowchartOnly ?? true;
+            const flowchartLike = /^\s*(graph|flowchart)\b/i.test(code) || !!svg.querySelector("g.edgePaths");
+            if (onlyFlowchart && !flowchartLike) {
+              if (jumpLinks?.enabled) {
+                const out = new XMLSerializer().serializeToString(svg);
+                host.remove();
+                return out;
+              }
+              const out = new XMLSerializer().serializeToString(svg);
+              host.remove();
+              return out;
+            }
+
+            const grid = Math.max(1, Number(layoutPolicy?.gridSize ?? 10));
+            const snap = (n: number) => Math.round(n / grid) * grid;
+            const eq0 = (a: number, b: number) => Math.abs(a - b) < 0.01;
+            const stubMin = Math.max(10, Number(layoutPolicy?.stubMin ?? 10));
+            const stubMax = Math.max(stubMin, Number(layoutPolicy?.stubMax ?? 20));
+            const lead = Math.min(Math.max(15, stubMin), stubMax);
+            const allow45Fallback = Boolean(layoutPolicy?.allow45Fallback);
+
+            const getNodeBoxes = () => {
+              const nodes = Array.from(svg.querySelectorAll("g.node"));
+              return nodes
+                .map((el) => {
+                  const id = el.getAttribute("id") ?? "";
+                  try {
+                    const b = (el as any).getBBox?.();
+                    if (!b) return null;
+                    const box = { x: Number(b.x), y: Number(b.y), width: Number(b.width), height: Number(b.height) };
+                    if (![box.x, box.y, box.width, box.height].every(Number.isFinite)) return null;
+                    if (box.width <= 0 || box.height <= 0) return null;
+                    return { id, el, box };
+                  } catch {
+                    return null;
+                  }
+                })
+                .filter(
+                  (x): x is { id: string; el: Element; box: { x: number; y: number; width: number; height: number } } => x != null
+                );
+            };
+
+            let nodeBoxes = getNodeBoxes();
+
+            const dist2 = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+              const dx = a.x - b.x;
+              const dy = a.y - b.y;
+              return dx * dx + dy * dy;
+            };
+
+            const parseEndpoints = (d: string) => {
+              const m = /[Mm]\\s*(-?\\d*\\.?\\d+(?:e[-+]?\\d+)?)\\s*,?\\s*(-?\\d*\\.?\\d+(?:e[-+]?\\d+)?)/.exec(d);
+              if (!m) return null;
+              const x0 = Number(m[1]);
+              const y0 = Number(m[2]);
+              if (!Number.isFinite(x0) || !Number.isFinite(y0)) return null;
+              const nums = d.match(/-?\\d*\\.?\\d+(?:e[-+]?\\d+)?/gi);
+              if (!nums || nums.length < 4) return null;
+              const x1 = Number(nums[nums.length - 2]);
+              const y1 = Number(nums[nums.length - 1]);
+              if (!Number.isFinite(x1) || !Number.isFinite(y1)) return null;
+              return { start: { x: x0, y: y0 }, end: { x: x1, y: y1 } };
+            };
+
+            const resolveAnchoredNodes = (start: { x: number; y: number }, end: { x: number; y: number }) => {
+              if (nodeBoxes.length === 0) return null;
+              let bestSrc: any = null;
+              let bestDst: any = null;
+              for (const n of nodeBoxes) {
+                const dstAnchor = { x: n.box.x + n.box.width / 2, y: n.box.y };
+                const srcCenter = { x: n.box.x + n.box.width / 2, y: n.box.y + n.box.height / 2 };
+                const d2s = dist2(start, srcCenter);
+                const d2t = dist2(end, dstAnchor);
+                if (!bestSrc || d2s < bestSrc.d2) bestSrc = { ...n, d2: d2s };
+                if (!bestDst || d2t < bestDst.d2) bestDst = { ...n, anchor: dstAnchor, d2: d2t };
+              }
+              if (!bestSrc || !bestDst) return null;
+              const srcTol = Math.max(bestSrc.box.width, bestSrc.box.height) * 1.2;
+              const dstTol = Math.max(bestDst.box.width, bestDst.box.height) * 1.2;
+              if (bestSrc.d2 > srcTol * srcTol) return null;
+              if (bestDst.d2 > dstTol * dstTol) return null;
+              return { src: bestSrc, dst: bestDst };
+            };
+
+            const edgePaths = Array.from(svg.querySelectorAll("g.edgePaths path"));
+
+            if (nodeBoxes.length > 0 && edgePaths.length > 0) {
+              const adjacency = new Map<string, Set<string>>();
+              const incoming = new Map<string, Set<string>>();
+              for (const n of nodeBoxes) {
+                adjacency.set(n.id, new Set());
+                incoming.set(n.id, new Set());
+              }
+
+              for (const p of edgePaths) {
+                const d = p.getAttribute("d") ?? "";
+                const endpoints = parseEndpoints(d);
+                if (!endpoints) continue;
+                const anchored = resolveAnchoredNodes(endpoints.start, endpoints.end);
+                if (!anchored) continue;
+                if (anchored.src.id === anchored.dst.id) continue;
+                adjacency.get(anchored.src.id)?.add(anchored.dst.id);
+                incoming.get(anchored.dst.id)?.add(anchored.src.id);
+              }
+
+              const ids = nodeBoxes.map((n) => n.id);
+              const indegree = new Map<string, number>();
+              for (const id of ids) indegree.set(id, incoming.get(id)?.size ?? 0);
+
+              const startNodes = ids.filter((id) => (indegree.get(id) ?? 0) === 0);
+              const queue: string[] = [...startNodes];
+              const layer = new Map<string, number>();
+              for (const id of ids) layer.set(id, 0);
+
+              const indegreeWork = new Map(indegree);
+              while (queue.length > 0) {
+                const cur = queue.shift()!;
+                const nextLayer = (layer.get(cur) ?? 0) + 1;
+                for (const to of adjacency.get(cur) ?? []) {
+                  layer.set(to, Math.max(layer.get(to) ?? 0, nextLayer));
+                  indegreeWork.set(to, (indegreeWork.get(to) ?? 0) - 1);
+                  if ((indegreeWork.get(to) ?? 0) === 0) queue.push(to);
+                }
+              }
+
+              let maxLayer = 0;
+              for (const [, v] of layer) maxLayer = Math.max(maxLayer, v);
+              for (const id of ids) {
+                if ((indegreeWork.get(id) ?? 0) > 0) {
+                  maxLayer += 1;
+                  layer.set(id, maxLayer);
+                }
+              }
+
+              const layers = new Map<number, any[]>();
+              for (const n of nodeBoxes) {
+                const l = layer.get(n.id) ?? 0;
+                const list = layers.get(l) ?? [];
+                list.push(n);
+                layers.set(l, list);
+              }
+              for (const [, list] of layers) list.sort((a, b) => (a.box.x + a.box.width / 2) - (b.box.x + b.box.width / 2));
+
+              const gapX = snap(Math.max(40, Number(layoutPolicy?.gapX ?? 60)));
+              const gapY = snap(Math.max(40, Number(layoutPolicy?.gapY ?? 60)));
+              const margin = snap(Math.max(30, Number(layoutPolicy?.margin ?? 50)));
+              const layerKeys = Array.from(layers.keys()).sort((a, b) => a - b);
+              const metrics = layerKeys.map((k) => {
+                const list = layers.get(k)!;
+                const width = list.reduce((sum, n, i) => sum + n.box.width + (i === 0 ? 0 : gapX), 0);
+                const height = list.reduce((m, n) => Math.max(m, n.box.height), 0);
+                return { k, width: snap(width), height: snap(height) };
+              });
+              const maxWidth = metrics.reduce((m, x) => Math.max(m, x.width), 0);
+
+              let yCursor = margin;
+              const targets = new Map<string, { x: number; y: number }>();
+              for (const m of metrics) {
+                const list = layers.get(m.k)!;
+                let xCursor = margin + snap((maxWidth - m.width) / 2);
+                const y = snap(yCursor);
+                for (const n of list) {
+                  targets.set(n.id, { x: snap(xCursor), y });
+                  xCursor += snap(n.box.width + gapX);
+                }
+                yCursor += snap(m.height + gapY);
+              }
+
+              for (const n of nodeBoxes) {
+                const t = targets.get(n.id);
+                if (!t) continue;
+                const dx = snap(t.x - n.box.x);
+                const dy = snap(t.y - n.box.y);
+                if (eq0(dx, 0) && eq0(dy, 0)) continue;
+                const el = n.el as Element;
+                const base = el.getAttribute("data-uml-flow-base-transform") ?? el.getAttribute("transform") ?? "";
+                if (!el.hasAttribute("data-uml-flow-base-transform")) el.setAttribute("data-uml-flow-base-transform", base);
+                el.setAttribute("transform", `translate(${dx} ${dy})${base ? " " + base : ""}`);
+              }
+
+              nodeBoxes = getNodeBoxes();
+            }
+
+            for (const p of edgePaths) {
+              const d = p.getAttribute("d") ?? "";
+              const endpoints = parseEndpoints(d);
+              if (!endpoints) continue;
+              const anchored = resolveAnchoredNodes(endpoints.start, endpoints.end);
+              if (!anchored) continue;
+              const t = { x: snap(anchored.dst.anchor.x), y: snap(anchored.dst.anchor.y) };
+              const srcBox = anchored.src.box as { x: number; y: number; width: number; height: number };
+              const dstBox = anchored.dst.box as { x: number; y: number; width: number; height: number };
+              const srcCx = srcBox.x + srcBox.width / 2;
+              const dstCx = dstBox.x + dstBox.width / 2;
+              const srcSide =
+                dstBox.y >= srcBox.y + srcBox.height + grid
+                  ? ("bottom" as const)
+                  : dstCx >= srcCx + grid
+                    ? ("right" as const)
+                    : dstCx <= srcCx - grid
+                      ? ("left" as const)
+                      : ("bottom" as const);
+
+              const s =
+                srcSide === "left"
+                  ? { x: snap(srcBox.x), y: snap(srcBox.y + srcBox.height / 2) }
+                  : srcSide === "right"
+                    ? { x: snap(srcBox.x + srcBox.width), y: snap(srcBox.y + srcBox.height / 2) }
+                    : { x: snap(srcBox.x + srcBox.width / 2), y: snap(srcBox.y + srcBox.height) };
+              if (t.y - s.y < grid) {
+                if (allow45Fallback) {
+                  const dx = t.x - s.x;
+                  const dy = t.y - s.y;
+                  if (Math.abs(dx) > 0.01 && Math.abs(dy) > 0.01) {
+                    const delta = Math.min(Math.abs(dx), Math.abs(dy));
+                    const p1 = { x: snap(s.x + Math.sign(dx) * delta), y: snap(s.y + Math.sign(dy) * delta) };
+                    p.setAttribute("d", ["M", s.x, s.y, "L", p1.x, p1.y, "L", t.x, t.y].join(" "));
+                  } else {
+                    p.setAttribute("d", ["M", s.x, s.y, "L", t.x, t.y].join(" "));
+                  }
+                }
+                continue;
+              }
+              let busY = snap(s.y + Math.min(Math.max(lead, 10), 20));
+              const maxBusY = snap(t.y - Math.min(Math.max(lead, 10), 20));
+              if (busY > maxBusY) busY = snap((s.y + t.y) / 2);
+              const firstLeg = Math.min(Math.max(lead, 10), 20);
+              const pts =
+                srcSide === "left"
+                  ? [s, { x: snap(s.x - firstLeg), y: s.y }, { x: snap(s.x - firstLeg), y: busY }, { x: t.x, y: busY }, t]
+                  : srcSide === "right"
+                    ? [s, { x: snap(s.x + firstLeg), y: s.y }, { x: snap(s.x + firstLeg), y: busY }, { x: t.x, y: busY }, t]
+                    : [s, { x: s.x, y: busY }, { x: t.x, y: busY }, t];
+              const simplified: any[] = [];
+              for (const pt of pts) {
+                const last = simplified[simplified.length - 1];
+                if (!last) simplified.push(pt);
+                else if (!eq0(last.x, pt.x) || !eq0(last.y, pt.y)) simplified.push(pt);
+              }
+              const finalPts: any[] = [];
+              for (const pt of simplified) {
+                const b = finalPts[finalPts.length - 1];
+                const a = finalPts[finalPts.length - 2];
+                if (a && b) {
+                  if ((eq0(a.x, b.x) && eq0(b.x, pt.x)) || (eq0(a.y, b.y) && eq0(b.y, pt.y))) {
+                    finalPts[finalPts.length - 1] = pt;
+                    continue;
+                  }
+                }
+                finalPts.push(pt);
+              }
+              if (finalPts.length >= 2) {
+                p.setAttribute(
+                  "d",
+                  ["M", finalPts[0].x, finalPts[0].y, ...finalPts.slice(1).flatMap((q: any) => ["L", q.x, q.y])].join(" ")
+                );
+              }
+            }
+
+            if (debug) {
+              const diag = Array.from(svg.querySelectorAll("g.edgePaths path")).some((p) => {
+                const d = p.getAttribute("d") ?? "";
+                if (/[CQSTAZ]/i.test(d)) return true;
+                const pts: { x: number; y: number }[] = [];
+                const rx = /([ML])\s*(-?\d*\.?\d+(?:e[-+]?\d+)?)\s*(-?\d*\.?\d+(?:e[-+]?\d+)?)/gi;
+                for (;;) {
+                  const m = rx.exec(d);
+                  if (!m) break;
+                  pts.push({ x: Number(m[2]), y: Number(m[3]) });
+                }
+                for (let i = 0; i < pts.length - 1; i += 1) {
+                  const a = pts[i]!;
+                  const b = pts[i + 1]!;
+                  if (Math.abs(a.x - b.x) > 0.01 && Math.abs(a.y - b.y) > 0.01) return true;
+                }
+                return false;
+              });
+              if (diag) console.warn("[uml-flow] NON_ORTHOGONAL_LINE_ERROR detected in playwright pipeline");
+            }
+
+            if (!jumpLinks?.enabled) {
+              const out = new XMLSerializer().serializeToString(svg);
+              host.remove();
+              return out;
+            }
 
             const radius = typeof jumpLinks.radius === "number" ? jumpLinks.radius : 4;
             const safeDistance = typeof jumpLinks.safeDistance === "number" ? jumpLinks.safeDistance : radius * 2;
@@ -301,7 +599,10 @@ export const createMermaidPlaywrightRenderer = (options?: { id?: string; config?
                     if (!isBetween(cursor, before, b)) continue;
                     if (!isBetween(cursor, after, b)) continue;
                     parts.push(`L ${before.x} ${before.y}`);
-                    parts.push(`a ${radius} ${radius} 0 0 ${sweepFlag} 0 ${2 * dir * radius}`);
+                    const arc1End = { x: before.x + (sideVertical === "right" ? 1 : sideVertical === "left" ? -1 : sweepFlag === 1 ? 1 : -1) * radius, y: before.y + dir * radius };
+                    const arc2End = { x: after.x, y: after.y };
+                    parts.push(`A ${radius} ${radius} 0 0 ${sweepFlag} ${arc1End.x} ${arc1End.y}`);
+                    parts.push(`A ${radius} ${radius} 0 0 ${sweepFlag} ${arc2End.x} ${arc2End.y}`);
                     cursor = after;
                   }
                   parts.push(`L ${b.x} ${b.y}`);
@@ -319,7 +620,10 @@ export const createMermaidPlaywrightRenderer = (options?: { id?: string; config?
                     if (!isBetween(cursor, before, b)) continue;
                     if (!isBetween(cursor, after, b)) continue;
                     parts.push(`L ${before.x} ${before.y}`);
-                    parts.push(`a ${radius} ${radius} 0 0 ${sweepFlag} ${2 * dir * radius} 0`);
+                    const arc1End = { x: before.x + dir * radius, y: before.y + (sideHorizontal === "down" ? 1 : sideHorizontal === "up" ? -1 : sweepFlag === 1 ? 1 : -1) * radius };
+                    const arc2End = { x: after.x, y: after.y };
+                    parts.push(`A ${radius} ${radius} 0 0 ${sweepFlag} ${arc1End.x} ${arc1End.y}`);
+                    parts.push(`A ${radius} ${radius} 0 0 ${sweepFlag} ${arc2End.x} ${arc2End.y}`);
                     cursor = after;
                   }
                   parts.push(`L ${b.x} ${b.y}`);
@@ -330,12 +634,20 @@ export const createMermaidPlaywrightRenderer = (options?: { id?: string; config?
               owner.setAttribute("d", parts.join(" "));
             }
 
-            return new XMLSerializer().serializeToString(svg);
+            const out = new XMLSerializer().serializeToString(svg);
+            host.remove();
+            return out;
           } catch {
             return svgText;
           }
         },
-        { code, initConfig, jumpLinks: merged.jumpLinks ?? { enabled: true, radius: 4, safeDistance: 8, prefer: "verticalThenHorizontal" } }
+        {
+          code,
+          initConfig,
+          jumpLinks: merged.jumpLinks ?? { enabled: true, radius: 4, safeDistance: 8, prefer: "verticalThenHorizontal" },
+          layoutPolicy: merged.layoutPolicy,
+          debug: Boolean(context.debug)
+        }
       );
 
       const output: RenderedOutput = { contentType: "image/svg+xml", content: result };
@@ -371,7 +683,17 @@ const normalizeConfig = (raw: MermaidPlaywrightConfig | undefined): {
   flowchartCurve: string;
   flowchartNodeSpacing?: number;
   flowchartRankSpacing?: number;
-  jumpLinks: { enabled: boolean; radius: number; safeDistance: number; prefer: "verticalThenHorizontal" | "vertical" | "horizontal" };
+  jumpLinks: { enabled: boolean; radius: number; safeDistance: number; prefer: "verticalThenHorizontal" | "vertical" | "horizontal"; debug: boolean };
+  layoutPolicy: {
+    strictOrthogonalFlowchartOnly: boolean;
+    gridSize: number;
+    margin: number;
+    gapX: number;
+    gapY: number;
+    stubMin: number;
+    stubMax: number;
+    allow45Fallback: boolean;
+  };
 } => {
   const radius = raw?.jumpLinks?.radius ?? 4;
   return {
@@ -387,7 +709,18 @@ const normalizeConfig = (raw: MermaidPlaywrightConfig | undefined): {
       enabled: raw?.jumpLinks?.enabled ?? true,
       radius,
       safeDistance: raw?.jumpLinks?.safeDistance ?? radius * 2,
-      prefer: raw?.jumpLinks?.prefer ?? "verticalThenHorizontal"
+      prefer: raw?.jumpLinks?.prefer ?? "verticalThenHorizontal",
+      debug: raw?.jumpLinks?.debug ?? false
+    },
+    layoutPolicy: {
+      strictOrthogonalFlowchartOnly: raw?.layoutPolicy?.strictOrthogonalFlowchartOnly ?? true,
+      gridSize: raw?.layoutPolicy?.gridSize ?? 10,
+      margin: raw?.layoutPolicy?.margin ?? 50,
+      gapX: raw?.layoutPolicy?.gapX ?? 60,
+      gapY: raw?.layoutPolicy?.gapY ?? 60,
+      stubMin: raw?.layoutPolicy?.stubMin ?? 10,
+      stubMax: raw?.layoutPolicy?.stubMax ?? 20,
+      allow45Fallback: raw?.layoutPolicy?.allow45Fallback ?? false
     }
   };
 };
@@ -408,6 +741,9 @@ const buildMermaidInitConfig = (
         "elk.algorithm": "layered",
         "elk.direction": "DOWN",
         "elk.edgeRouting": config.elkEdgeRouting,
+        "elk.portConstraints": "FIXED_SIDE",
+        "elk.layered.nodePlacement.favorStraightEdges": true,
+        "elk.layered.spacing.edgeNodeBetweenLayers": 20,
         "elk.layered.spacing.nodeNodeBetweenLayers": 40
       }
     : undefined;

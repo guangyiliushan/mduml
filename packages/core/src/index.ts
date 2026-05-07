@@ -50,6 +50,16 @@ export type FenceBlock = {
   code: string;
 };
 
+export type OrthogonalLayoutPolicy = {
+  strictOrthogonalFlowchartOnly?: boolean;
+  gridSize?: number;
+  margin?: number;
+  gapX?: number;
+  gapY?: number;
+  stubMin?: number;
+  stubMax?: number;
+};
+
 export type ParsedFenceBlock = {
   language: DiagramLanguage;
   code: string;
@@ -193,4 +203,3 @@ const fnv1a = (input: string): string => {
   }
   return (hash >>> 0).toString(16).padStart(8, "0");
 };
-

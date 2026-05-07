@@ -17,6 +17,7 @@ export type MermaidJumpLinksConfig = {
   prefer?: JumpLinksPrefer;
   side?: JumpLinksSide;
   sweep?: JumpLinksSweep;
+  debug?: boolean;
 };
 
 export type NormalizedJumpLinksConfig = {
@@ -26,6 +27,7 @@ export type NormalizedJumpLinksConfig = {
   prefer: JumpLinksPrefer;
   side: Required<JumpLinksSide>;
   sweep: JumpLinksSweep;
+  debug: boolean;
 };
 
 export const normalizeJumpLinksConfig = (raw: MermaidJumpLinksConfig | undefined): NormalizedJumpLinksConfig => {
@@ -39,7 +41,8 @@ export const normalizeJumpLinksConfig = (raw: MermaidJumpLinksConfig | undefined
       vertical: raw?.side?.vertical ?? "right",
       horizontal: raw?.side?.horizontal ?? "up"
     },
-    sweep: raw?.sweep ?? {}
+    sweep: raw?.sweep ?? {},
+    debug: raw?.debug ?? false
   };
 };
 
@@ -58,6 +61,10 @@ export const applySvgJumpLinks = (svg: SVGSVGElement, rawConfig?: MermaidJumpLin
     .filter((x): x is { path: SVGPathElement; points: { ok: true; points: Point[] } } => x.points.ok);
 
   if (parsed.length === 0) return;
+  if (!parsed.every((item) => isOrthogonalPoints(item.points.points))) {
+    if (config.debug) console.warn("[uml-flow] jump-links skipped: non-orthogonal path detected");
+    return;
+  }
 
   const segments: Segment[] = [];
   for (const item of parsed) {
@@ -75,6 +82,11 @@ export const applySvgJumpLinks = (svg: SVGSVGElement, rawConfig?: MermaidJumpLin
 
   const byOwner = new Map<SVGPathElement, { points: Point[]; inserts: Insert[] }>();
   for (const item of parsed) byOwner.set(item.path, { points: item.points.points, inserts: [] });
+
+  const overlapWarnings = detectHorizontalOverlaps(parsed.map((x) => x.points.points));
+  if (overlapWarnings > 0 && config.debug) {
+    console.warn(`[uml-flow] LINE_OVERLAP_WARNING: detected ${overlapWarnings} horizontal overlap(s)`);
+  }
 
   for (let i = 0; i < segments.length; i += 1) {
     const s1 = segments[i]!;
@@ -249,6 +261,41 @@ const tokenizePath = (d: string): string[] => {
 
 const isCommandToken = (t: string): boolean => /^[a-zA-Z]$/.test(t);
 
+const isOrthogonalPoints = (pts: Point[]): boolean => {
+  for (let i = 0; i < pts.length - 1; i += 1) {
+    const a = pts[i]!;
+    const b = pts[i + 1]!;
+    if (!almostEqual(a.x, b.x) && !almostEqual(a.y, b.y)) return false;
+  }
+  return true;
+};
+
+const detectHorizontalOverlaps = (allPoints: Point[][]): number => {
+  const segs: { y: number; x1: number; x2: number }[] = [];
+  for (const pts of allPoints) {
+    for (let i = 0; i < pts.length - 1; i += 1) {
+      const a = pts[i]!;
+      const b = pts[i + 1]!;
+      if (!almostEqual(a.y, b.y)) continue;
+      const [x1, x2] = sortPair(a.x, b.x);
+      segs.push({ y: a.y, x1, x2 });
+    }
+  }
+
+  let count = 0;
+  for (let i = 0; i < segs.length; i += 1) {
+    for (let j = i + 1; j < segs.length; j += 1) {
+      const a = segs[i]!;
+      const b = segs[j]!;
+      if (Math.abs(a.y - b.y) >= 2) continue;
+      const left = Math.max(a.x1, b.x1);
+      const right = Math.min(a.x2, b.x2);
+      if (right > left) count += 1;
+    }
+  }
+  return count;
+};
+
 type Insert = { orientation: "h" | "v"; at: Point; radius: number };
 
 const dedupeInserts = (owner: SVGPathElement, inserts: Insert[], radius: number): Insert[] => {
@@ -324,8 +371,12 @@ const buildPathWithInserts = (points: Point[], inserts: Insert[], config: Normal
         const after: Point = { x: a.x, y: y0 + dir * r };
         if (!isBetween(cursor, before, b)) continue;
         if (!isBetween(cursor, after, b)) continue;
+        const sideSign = resolveDetourSign("v", config, sweepFlag);
         parts.push(`L ${before.x} ${before.y}`);
-        parts.push(`a ${r} ${r} 0 0 ${sweepFlag} 0 ${2 * dir * r}`);
+        const arc1End: Point = { x: before.x + sideSign * r, y: before.y + dir * r };
+        const arc2End: Point = { x: after.x, y: after.y };
+        parts.push(`A ${r} ${r} 0 0 ${sweepFlag} ${arc1End.x} ${arc1End.y}`);
+        parts.push(`A ${r} ${r} 0 0 ${sweepFlag} ${arc2End.x} ${arc2End.y}`);
         cursor = after;
       }
       parts.push(`L ${b.x} ${b.y}`);
@@ -344,8 +395,12 @@ const buildPathWithInserts = (points: Point[], inserts: Insert[], config: Normal
         const after: Point = { x: x0 + dir * r, y: a.y };
         if (!isBetween(cursor, before, b)) continue;
         if (!isBetween(cursor, after, b)) continue;
+        const sideSign = resolveDetourSign("h", config, sweepFlag);
         parts.push(`L ${before.x} ${before.y}`);
-        parts.push(`a ${r} ${r} 0 0 ${sweepFlag} ${2 * dir * r} 0`);
+        const arc1End: Point = { x: before.x + dir * r, y: before.y + sideSign * r };
+        const arc2End: Point = { x: after.x, y: after.y };
+        parts.push(`A ${r} ${r} 0 0 ${sweepFlag} ${arc1End.x} ${arc1End.y}`);
+        parts.push(`A ${r} ${r} 0 0 ${sweepFlag} ${arc2End.x} ${arc2End.y}`);
         cursor = after;
       }
       parts.push(`L ${b.x} ${b.y}`);
@@ -372,6 +427,17 @@ const resolveSweepFlag = (orientation: "h" | "v", dir: 1 | -1, config: Normalize
   const side = config.side.horizontal;
   if (side === "up") return dir === 1 ? 0 : 1;
   return dir === 1 ? 1 : 0;
+};
+
+const resolveDetourSign = (orientation: "h" | "v", config: NormalizedJumpLinksConfig, sweepFlag: 0 | 1): 1 | -1 => {
+  if (orientation === "v") {
+    if (config.side.vertical === "right") return 1;
+    if (config.side.vertical === "left") return -1;
+    return sweepFlag === 1 ? 1 : -1;
+  }
+  if (config.side.horizontal === "down") return 1;
+  if (config.side.horizontal === "up") return -1;
+  return sweepFlag === 1 ? 1 : -1;
 };
 
 const isBetween = (a: Point, mid: Point, b: Point): boolean => {

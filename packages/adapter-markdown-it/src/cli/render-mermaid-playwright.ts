@@ -13,6 +13,18 @@ const main = async () => {
       flowchartCurve?: string;
       flowchartNodeSpacing?: number;
       flowchartRankSpacing?: number;
+      layoutPolicy?: {
+        strictOrthogonalFlowchartOnly?: boolean;
+        gridSize?: number;
+        margin?: number;
+        gapX?: number;
+        gapY?: number;
+        stubMin?: number;
+        stubMax?: number;
+        allow45Fallback?: boolean;
+        fixedLayerY?: number[];
+        busLayerRatio?: number;
+      };
       jumpLinks?: {
         enabled?: boolean;
         radius?: number;
@@ -20,6 +32,7 @@ const main = async () => {
         prefer?: "verticalThenHorizontal" | "vertical" | "horizontal";
         side?: { vertical?: "right" | "left"; horizontal?: "up" | "down" };
         sweep?: { vertical?: 0 | 1; horizontal?: 0 | 1 };
+        debug?: boolean;
       };
     };
     debug: boolean;
@@ -35,6 +48,7 @@ const main = async () => {
       flowchartCurve: payload.config.flowchartCurve,
       flowchartNodeSpacing: payload.config.flowchartNodeSpacing,
       flowchartRankSpacing: payload.config.flowchartRankSpacing,
+      layoutPolicy: payload.config.layoutPolicy,
       jumpLinks: payload.config.jumpLinks
     }
   });

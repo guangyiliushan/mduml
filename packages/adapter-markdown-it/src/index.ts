@@ -10,6 +10,18 @@ export type UmlFlowMermaidOptions = {
   flowchartCurve?: string;
   flowchartNodeSpacing?: number;
   flowchartRankSpacing?: number;
+  layoutPolicy?: {
+    strictOrthogonalFlowchartOnly?: boolean;
+    gridSize?: number;
+    margin?: number;
+    gapX?: number;
+    gapY?: number;
+    stubMin?: number;
+    stubMax?: number;
+    allow45Fallback?: boolean;
+    fixedLayerY?: number[];
+    busLayerRatio?: number;
+  };
   jumpLinks?: {
     enabled?: boolean;
     radius?: number;
@@ -17,6 +29,7 @@ export type UmlFlowMermaidOptions = {
     prefer?: "verticalThenHorizontal" | "vertical" | "horizontal";
     side?: { vertical?: "right" | "left"; horizontal?: "up" | "down" };
     sweep?: { vertical?: 0 | 1; horizontal?: 0 | 1 };
+    debug?: boolean;
   };
 };
 
@@ -50,6 +63,7 @@ export const umlFlowMarkdownItPlugin = (md: MarkdownIt, options?: UmlFlowMarkdow
     flowchartCurve: options?.mermaid?.flowchartCurve ?? "linear",
     flowchartNodeSpacing: options?.mermaid?.flowchartNodeSpacing,
     flowchartRankSpacing: options?.mermaid?.flowchartRankSpacing,
+    layoutPolicy: options?.mermaid?.layoutPolicy,
     jumpLinks: options?.mermaid?.jumpLinks ?? {
       enabled: true,
       radius: 4,
@@ -127,6 +141,7 @@ const renderMermaidHtml = (input: {
         nodeSpacing: input.mermaidConfig.flowchartNodeSpacing,
         rankSpacing: input.mermaidConfig.flowchartRankSpacing
       },
+      layoutPolicy: input.mermaidConfig.layoutPolicy,
       jumpLinks: input.mermaidConfig.jumpLinks
     })
   );
