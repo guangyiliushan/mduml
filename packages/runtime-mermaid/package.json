@@ -14,7 +14,8 @@
       "types": "./dist/index.d.ts",
       "require": "./dist/index.cjs",
       "import": "./dist/index.js"
-    }
+    },
+    "./global": "./dist/runtime.global.js"
   },
   "scripts": {
     "build": "tsup",
