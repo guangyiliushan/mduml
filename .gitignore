@@ -3,6 +3,9 @@ node_modules
 .pnp
 .pnp.js
 
+# CodeGraph local index
+.codegraph
+
 # Build outputs
 dist
 build
