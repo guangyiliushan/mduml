@@ -87,6 +87,11 @@ const injectPlantUmlOrthoStyle = (code: string, roundCorner: number): string => 
 
 export const __test__ = { injectPlantUmlOrthoStyle };
 
+export const plantUmlServerPathSegment = (text: string): string => {
+  const compressed = deflateRawSync(Buffer.from(text, "utf8"));
+  return encode64(compressed);
+};
+
 const renderViaLocalJar = async (code: string, jarPath: string, timeoutMs: number): Promise<string> => {
   await access(jarPath);
 
@@ -140,10 +145,7 @@ const renderViaRemoteServer = async (code: string, serverUrl: string, timeoutMs:
   }
 };
 
-const plantUmlEncode = (text: string): string => {
-  const compressed = deflateRawSync(Buffer.from(text, "utf8"));
-  return encode64(compressed);
-};
+const plantUmlEncode = (text: string): string => plantUmlServerPathSegment(text);
 
 const encode64 = (data: Buffer): string => {
   let result = "";

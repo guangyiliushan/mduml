@@ -1,8 +1,13 @@
 import type MarkdownIt from "markdown-it";
 import type Token from "markdown-it/lib/token.mjs";
 import { createErrorBlockHtml } from "@mduml/core";
+import type { MermaidRuntimeConfig } from "@mduml/runtime-mermaid";
 
 export type UmlFlowMarkdownItMode = "runtime" | "build" | "auto";
+
+export type UmlFlowMarkdownItModeSpec =
+  | UmlFlowMarkdownItMode
+  | { mermaid?: UmlFlowMarkdownItMode; plantuml?: UmlFlowMarkdownItMode };
 
 export type UmlFlowMermaidOptions = {
   useElk?: boolean;
@@ -44,40 +49,61 @@ export type UmlFlowPlantUmlOptions = {
   timeoutMs?: number;
   enableRemoteFallback?: boolean;
   remoteServerUrl?: string;
+  remoteRender?: boolean;
+  remoteImageUrl?: string;
 };
 
 export type UmlFlowMarkdownItOptions = {
   debug?: boolean;
-  mode?: UmlFlowMarkdownItMode;
+  mode?: UmlFlowMarkdownItModeSpec;
   mermaid?: UmlFlowMermaidOptions;
   buildBackend?: UmlFlowPlaywrightBackendOptions;
   plantuml?: UmlFlowPlantUmlOptions;
+  cliDir?: string;
 };
+
+export const toMermaidRuntimeConfig = (mermaid: UmlFlowMermaidOptions | undefined, debug?: boolean): MermaidRuntimeConfig => ({
+  debug,
+  layout: { useElk: mermaid?.useElk ?? true, elkEdgeRouting: mermaid?.elkEdgeRouting ?? "ORTHOGONAL" },
+  flowchart: {
+    curve: mermaid?.flowchartCurve ?? "linear",
+    nodeSpacing: mermaid?.flowchartNodeSpacing,
+    rankSpacing: mermaid?.flowchartRankSpacing
+  },
+  layoutPolicy: mermaid?.layoutPolicy,
+  jumpLinks:
+    mermaid?.jumpLinks ??
+    { enabled: true, radius: 4, prefer: "verticalThenHorizontal", side: { vertical: "right", horizontal: "up" } }
+});
 
 export const umlFlowMarkdownItPlugin = (md: MarkdownIt, options?: UmlFlowMarkdownItOptions): void => {
   const debug = Boolean(options?.debug);
-  const mode: UmlFlowMarkdownItMode = options?.mode ?? "runtime";
-  const mermaidConfig = {
+  const modes = normalizeModes(options?.mode);
+  const mermaidConfig: UmlFlowMermaidOptions = {
     useElk: options?.mermaid?.useElk ?? true,
     elkEdgeRouting: options?.mermaid?.elkEdgeRouting ?? "ORTHOGONAL",
     flowchartCurve: options?.mermaid?.flowchartCurve ?? "linear",
     flowchartNodeSpacing: options?.mermaid?.flowchartNodeSpacing,
     flowchartRankSpacing: options?.mermaid?.flowchartRankSpacing,
     layoutPolicy: options?.mermaid?.layoutPolicy,
-    jumpLinks: options?.mermaid?.jumpLinks ?? {
-      enabled: true,
-      radius: 4,
-      prefer: "verticalThenHorizontal" as const,
-      side: { vertical: "right", horizontal: "up" } as const
-    }
+    jumpLinks:
+      options?.mermaid?.jumpLinks ?? {
+        enabled: true,
+        radius: 4,
+        prefer: "verticalThenHorizontal" as const,
+        side: { vertical: "right", horizontal: "up" } as const
+      }
   };
   const plantUmlConfig: UmlFlowPlantUmlOptions = {
     localJarPath: options?.plantuml?.localJarPath,
     timeoutMs: options?.plantuml?.timeoutMs,
     enableRemoteFallback: options?.plantuml?.enableRemoteFallback,
-    remoteServerUrl: options?.plantuml?.remoteServerUrl
+    remoteServerUrl: options?.plantuml?.remoteServerUrl,
+    remoteRender: options?.plantuml?.remoteRender ?? false,
+    remoteImageUrl: options?.plantuml?.remoteImageUrl
   };
   const buildBackend = options?.buildBackend ?? { type: "playwright" as const };
+  const cliDir = options?.cliDir;
 
   const cache = new Map<string, string>();
 
@@ -93,64 +119,227 @@ export const umlFlowMarkdownItPlugin = (md: MarkdownIt, options?: UmlFlowMarkdow
     }
 
     const code = token.content ?? "";
-    const cacheKey = sha256(`${language}::${code}::${JSON.stringify({ mermaidConfig, plantUmlConfig, mode, buildBackend })}`);
-    const cached = cache.get(cacheKey);
-    if (cached) return cached;
+    const key = blockCacheKey(language, code);
+    if (!cache.has(key)) fillDocumentCache(tokens);
+    return cache.get(key) ?? "";
+  };
 
-    const html =
-      language === "mermaid"
-        ? renderMermaidHtml({ code, mode, mermaidConfig, debug, buildBackend })
-        : renderPlantUmlHtml({ code, language, mode, plantUmlConfig, debug });
+  const blockCacheKey = (language: string, code: string): string => sha256(`${language}::${code}`);
 
-    cache.set(cacheKey, html);
-    return html;
+  const fillDocumentCache = (tokens: Token[]): void => {
+    const pendingMermaid = new Map<string, string>();
+    const pendingPlantUml = new Map<string, { code: string; language: "plantuml" | "uml" }>();
+
+    for (const token of tokens) {
+      if (token.type !== "fence") continue;
+      const info = token.info?.trim() ?? "";
+      const language = info.split(/\s+/)[0] ?? "";
+      if (language !== "mermaid" && language !== "plantuml" && language !== "uml") continue;
+      const code = token.content ?? "";
+      const key = blockCacheKey(language, code);
+      if (cache.has(key)) continue;
+
+      if (language === "mermaid") {
+        if (modes.mermaid === "runtime") {
+          cache.set(key, buildMermaidRuntimeHtml(code));
+          continue;
+        }
+        pendingMermaid.set(key, code);
+      } else {
+        if (modes.plantuml === "runtime") {
+          cache.set(key, buildPlantUmlRuntimeHtml(code, language));
+          continue;
+        }
+        pendingPlantUml.set(key, { code, language });
+      }
+    }
+
+    if (pendingMermaid.size > 0) {
+      const results = renderMermaidBatch(pendingMermaid);
+      for (const [key, code] of pendingMermaid) {
+        const result = results.get(key);
+        if (result?.ok) {
+          cache.set(key, result.svg);
+        } else if (modes.mermaid === "build") {
+          cache.set(key, errorHtml("adapter-markdown-it/mermaid-build", result?.message ?? "构建期渲染失败"));
+        } else {
+          cache.set(key, buildMermaidRuntimeHtml(code));
+        }
+      }
+    }
+
+    if (pendingPlantUml.size > 0) {
+      const results = renderPlantUmlBatch(pendingPlantUml);
+      for (const [key, block] of pendingPlantUml) {
+        const result = results.get(key);
+        if (result?.ok) {
+          cache.set(key, result.svg);
+        } else if (modes.plantuml === "build") {
+          cache.set(key, errorHtml("adapter-markdown-it/plantuml-build", result?.message ?? "构建期渲染失败"));
+        } else {
+          cache.set(key, buildPlantUmlRuntimeHtml(block.code, block.language));
+        }
+      }
+    }
+  };
+
+  const errorHtml = (rendererId: string, message: string): string =>
+    createErrorBlockHtml({ rendererId, message }).content;
+
+  const buildMermaidRuntimeHtml = (code: string): string => {
+    const trimmed = code.trim();
+    if (trimmed.length === 0) {
+      return errorHtml("adapter-markdown-it/mermaid", "Mermaid 代码块为空");
+    }
+    const encodedConfig = escapeHtmlAttribute(JSON.stringify(toMermaidRuntimeConfig(mermaidConfig, debug)));
+    const encodedCode = escapeHtml(trimmed);
+    return `<div class="mermaid" data-uml-flow-mermaid-config="${encodedConfig}">${encodedCode}</div>`;
+  };
+
+  const buildPlantUmlRuntimeHtml = (code: string, language: "plantuml" | "uml"): string => {
+    const trimmed = code.trim();
+    if (trimmed.length === 0) {
+      return errorHtml(`adapter-markdown-it/${language}`, "PlantUML 代码块为空");
+    }
+    if (plantUmlConfig.remoteRender) {
+      return buildPlantUmlRemoteImageHtml(trimmed);
+    }
+    return errorHtml(
+      `adapter-markdown-it/${language}`,
+      "PlantUML 需要构建期渲染或外部图床；请将 mode 设置为 build/auto，并配置 localJarPath 或开启远程兜底"
+    );
+  };
+
+  const buildPlantUmlRemoteImageHtml = (code: string): string => {
+    const base = (plantUmlConfig.remoteImageUrl || "https://www.plantuml.com/plantuml").replace(/\/+$/, "");
+    const segment = plantUmlServerUrlSegment(code);
+    return `<img class="uml-flow-plantuml" src="${escapeHtmlAttribute(`${base}/svg/${segment}`)}" alt="PlantUML diagram" style="max-width:100%;">`;
+  };
+
+  const renderMermaidBatch = (pending: Map<string, string>): Map<string, { ok: true; svg: string } | { ok: false; message: string }> => {
+    const results = new Map<string, { ok: true; svg: string } | { ok: false; message: string }>();
+    const blocks = Array.from(pending.entries()).map(([id, code]) => ({
+      id,
+      code,
+      config: toMermaidRuntimeConfig(mermaidConfig, debug) as unknown as Record<string, unknown>
+    }));
+    const payload = {
+      blocks,
+      debug,
+      backend: { type: "playwright" as const, executablePath: buildBackend.executablePath, timeoutMs: buildBackend.timeoutMs }
+    };
+    const raw = spawnCli("render-mermaid-playwright", payload);
+    if (!raw) return results;
+    try {
+      const parsed = JSON.parse(raw) as { ok?: boolean; results?: { id: string; ok: boolean; svg?: string; message?: string }[] };
+      for (const item of parsed.results ?? []) {
+        if (item.ok && typeof item.svg === "string") results.set(item.id, { ok: true, svg: item.svg });
+        else results.set(item.id, { ok: false, message: item.message ?? "构建期渲染失败" });
+      }
+    } catch {
+      return results;
+    }
+    return results;
+  };
+
+  const renderPlantUmlBatch = (
+    pending: Map<string, { code: string; language: "plantuml" | "uml" }>
+  ): Map<string, { ok: true; svg: string } | { ok: false; message: string }> => {
+    const results = new Map<string, { ok: true; svg: string } | { ok: false; message: string }>();
+    const blocks = Array.from(pending.entries()).map(([id, block]) => ({ id, code: block.code, language: block.language }));
+    const payload = {
+      blocks,
+      debug,
+      config: {
+        localJarPath: plantUmlConfig.localJarPath,
+        timeoutMs: plantUmlConfig.timeoutMs,
+        enableRemoteFallback: plantUmlConfig.enableRemoteFallback,
+        remoteServerUrl: plantUmlConfig.remoteServerUrl
+      }
+    };
+    const raw = spawnCli("render-plantuml", payload);
+    if (!raw) return results;
+    try {
+      const parsed = JSON.parse(raw) as { ok?: boolean; results?: { id: string; ok: boolean; svg?: string; message?: string }[] };
+      for (const item of parsed.results ?? []) {
+        if (item.ok && typeof item.svg === "string") results.set(item.id, { ok: true, svg: item.svg });
+        else results.set(item.id, { ok: false, message: item.message ?? "构建期渲染失败" });
+      }
+    } catch {
+      return results;
+    }
+    return results;
+  };
+
+  const spawnCli = (name: "render-mermaid-playwright" | "render-plantuml", payload: unknown): string | null => {
+    const spawnSync = getNodeSpawnSync();
+    if (!spawnSync) return null;
+    const cliPath = resolveCliPath(name, cliDir);
+    const result = spawnSync(process.execPath, [cliPath], {
+      input: JSON.stringify(payload),
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024
+    });
+    const stdout = result.stdout ?? "";
+    if (stdout.trim().length === 0) return null;
+    try {
+      const parsed = JSON.parse(stdout) as { ok?: boolean };
+      if (parsed.ok) return stdout;
+    } catch {
+      return null;
+    }
+    return null;
   };
 };
 
-const renderMermaidHtml = (input: {
-  code: string;
-  mode: UmlFlowMarkdownItMode;
-  mermaidConfig: UmlFlowMermaidOptions;
-  debug: boolean;
-  buildBackend: UmlFlowPlaywrightBackendOptions;
-}): string => {
-  const trimmed = input.code.trim();
-  if (trimmed.length === 0) {
-    return createErrorBlockHtml({ rendererId: "adapter-markdown-it/mermaid", message: "Mermaid 代码块为空" }).content;
-  }
-
-  if (input.mode === "build" || input.mode === "auto") {
-    const buildResult = renderMermaidSvgViaPlaywrightSync({
-      code: trimmed,
-      config: input.mermaidConfig,
-      debug: input.debug,
-      backend: input.buildBackend
-    });
-    if (buildResult.ok) return buildResult.svg;
-    if (input.mode === "build") {
-      return createErrorBlockHtml({ rendererId: "adapter-markdown-it/mermaid-build", message: buildResult.message }).content;
-    }
-  }
-
-  const encodedConfig = escapeHtmlAttribute(
-    JSON.stringify({
-      debug: input.debug,
-      layout: { useElk: input.mermaidConfig.useElk, elkEdgeRouting: input.mermaidConfig.elkEdgeRouting },
-      flowchart: {
-        curve: input.mermaidConfig.flowchartCurve,
-        nodeSpacing: input.mermaidConfig.flowchartNodeSpacing,
-        rankSpacing: input.mermaidConfig.flowchartRankSpacing
-      },
-      layoutPolicy: input.mermaidConfig.layoutPolicy,
-      jumpLinks: input.mermaidConfig.jumpLinks
-    })
-  );
-  const encodedCode = escapeHtml(trimmed);
-
-  return `<div class="mermaid" data-uml-flow-mermaid-config="${encodedConfig}">${encodedCode}</div>`;
+const normalizeModes = (spec: UmlFlowMarkdownItModeSpec | undefined): { mermaid: UmlFlowMarkdownItMode; plantuml: UmlFlowMarkdownItMode } => {
+  if (typeof spec === "string") return { mermaid: spec, plantuml: spec };
+  return { mermaid: spec?.mermaid ?? "runtime", plantuml: spec?.plantuml ?? "runtime" };
 };
 
-const sha256 = (value: string): string => sha256Hex(new TextEncoder().encode(value));
+const plantUmlServerUrlSegment = (code: string): string => {
+  const zlib = getNodeZlib();
+  if (zlib) {
+    try {
+      const compressed = zlib.deflateRawSync(Buffer.from(code, "utf8"));
+      return plantUmlEncode64(new Uint8Array(compressed));
+    } catch {}
+  }
+  const bytes = new TextEncoder().encode(code);
+  let hex = "";
+  for (const byte of bytes) hex += byte.toString(16).padStart(2, "0");
+  return `~h${hex}`;
+};
+
+const plantUmlEncode64 = (data: Uint8Array): string => {
+  let result = "";
+  for (let i = 0; i < data.length; i += 3) {
+    if (i + 2 === data.length) {
+      result += plantUmlAppend3bytes(data[i]!, data[i + 1]!, 0);
+    } else if (i + 1 === data.length) {
+      result += plantUmlAppend3bytes(data[i]!, 0, 0);
+    } else {
+      result += plantUmlAppend3bytes(data[i]!, data[i + 1]!, data[i + 2]!);
+    }
+  }
+  return result;
+};
+
+const plantUmlAppend3bytes = (b1: number, b2: number, b3: number): string => {
+  const c1 = b1 >> 2;
+  const c2 = ((b1 & 0x3) << 4) | (b2 >> 4);
+  const c3 = ((b2 & 0xf) << 2) | (b3 >> 6);
+  const c4 = b3 & 0x3f;
+  return plantUmlEncode6bit(c1 & 0x3f) + plantUmlEncode6bit(c2 & 0x3f) + plantUmlEncode6bit(c3 & 0x3f) + plantUmlEncode6bit(c4 & 0x3f);
+};
+
+const plantUmlEncode6bit = (b: number): string => {
+  if (b < 10) return String.fromCharCode(48 + b);
+  if (b < 36) return String.fromCharCode(65 + (b - 10));
+  if (b < 62) return String.fromCharCode(97 + (b - 36));
+  if (b === 62) return "-";
+  return "_";
+};
 
 const escapeHtml = (value: string): string =>
   value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -162,102 +351,6 @@ const escapeHtmlAttribute = (value: string): string =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
-const renderMermaidSvgViaPlaywrightSync = (input: {
-  code: string;
-  config: UmlFlowMermaidOptions;
-  debug: boolean;
-  backend: UmlFlowPlaywrightBackendOptions;
-}): { ok: true; svg: string } | { ok: false; message: string } => {
-  const spawnSync = getNodeSpawnSync();
-  if (!spawnSync) {
-    return { ok: false, message: "构建期渲染仅支持 Node.js 环境；浏览器中请使用 mode=runtime（或 mode=auto 自动回退）" };
-  }
-
-  const cliPath = resolveCliPath("render-mermaid-playwright");
-  const result = spawnSync(process.execPath, [cliPath], {
-    input: JSON.stringify(input),
-    encoding: "utf8",
-    maxBuffer: 20 * 1024 * 1024
-  });
-
-  const stdout = result.stdout ?? "";
-  if (stdout.trim().length === 0) {
-    return { ok: false, message: result.stderr?.toString() || "构建期渲染失败：无输出" };
-  }
-
-  try {
-    const payload = JSON.parse(stdout) as any;
-    if (payload?.ok && typeof payload?.svg === "string") return { ok: true, svg: payload.svg };
-    return { ok: false, message: payload?.message ?? "构建期渲染失败：未知错误" };
-  } catch {
-    return { ok: false, message: `构建期渲染失败：输出不可解析：${stdout.slice(0, 2000)}` };
-  }
-};
-
-const renderPlantUmlHtml = (input: {
-  code: string;
-  language: "plantuml" | "uml";
-  mode: UmlFlowMarkdownItMode;
-  plantUmlConfig: UmlFlowPlantUmlOptions;
-  debug: boolean;
-}): string => {
-  const trimmed = input.code.trim();
-  if (trimmed.length === 0) {
-    return createErrorBlockHtml({ rendererId: "adapter-markdown-it/plantuml", message: "PlantUML 代码块为空" }).content;
-  }
-
-  if (input.mode === "build" || input.mode === "auto") {
-    const buildResult = renderPlantUmlSvgSync({
-      code: trimmed,
-      language: input.language,
-      config: input.plantUmlConfig,
-      debug: input.debug
-    });
-
-    if (buildResult.ok) return buildResult.svg;
-    if (input.mode === "build") {
-      return createErrorBlockHtml({ rendererId: "adapter-markdown-it/plantuml-build", message: buildResult.message }).content;
-    }
-  }
-
-  return createErrorBlockHtml({
-    rendererId: "adapter-markdown-it/plantuml",
-    message: "PlantUML 需要构建期渲染或外部图床；请将 mode 设置为 build/auto，并配置 localJarPath 或开启远程兜底"
-  }).content;
-};
-
-const renderPlantUmlSvgSync = (input: {
-  code: string;
-  language: "plantuml" | "uml";
-  config: UmlFlowPlantUmlOptions;
-  debug: boolean;
-}): { ok: true; svg: string } | { ok: false; message: string } => {
-  const spawnSync = getNodeSpawnSync();
-  if (!spawnSync) {
-    return { ok: false, message: "构建期渲染仅支持 Node.js 环境；浏览器中无法渲染 PlantUML" };
-  }
-
-  const cliPath = resolveCliPath("render-plantuml");
-  const result = spawnSync(process.execPath, [cliPath], {
-    input: JSON.stringify(input),
-    encoding: "utf8",
-    maxBuffer: 20 * 1024 * 1024
-  });
-
-  const stdout = result.stdout ?? "";
-  if (stdout.trim().length === 0) {
-    return { ok: false, message: result.stderr?.toString() || "构建期渲染失败：无输出" };
-  }
-
-  try {
-    const payload = JSON.parse(stdout) as any;
-    if (payload?.ok && typeof payload?.svg === "string") return { ok: true, svg: payload.svg };
-    return { ok: false, message: payload?.message ?? "构建期渲染失败：未知错误" };
-  } catch {
-    return { ok: false, message: `构建期渲染失败：输出不可解析：${stdout.slice(0, 2000)}` };
-  }
-};
-
 const fileUrlToPathString = (url: URL): string => {
   if (url.protocol !== "file:") return url.toString();
   let p = decodeURIComponent(url.pathname);
@@ -265,7 +358,18 @@ const fileUrlToPathString = (url: URL): string => {
   return p;
 };
 
-const resolveCliPath = (name: "render-mermaid-playwright" | "render-plantuml"): string => {
+const resolveCliPath = (name: "render-mermaid-playwright" | "render-plantuml", cliDir?: string): string => {
+  if (cliDir) {
+    const req = getRequire();
+    if (req) {
+      try {
+        const path = req("node:path");
+        return path.join(cliDir, `${name}.cjs`);
+      } catch {}
+    }
+    return `${cliDir}/${name}.cjs`;
+  }
+
   const metaUrl = (import.meta as any)?.url;
   if (typeof metaUrl === "string") {
     return fileUrlToPathString(new URL(`./cli/${name}.js`, metaUrl));
@@ -284,20 +388,35 @@ const resolveCliPath = (name: "render-mermaid-playwright" | "render-plantuml"): 
   }
 };
 
-const getNodeSpawnSync = (): ((...args: any[]) => any) | null => {
+const getNodeBuiltin = (name: string): any | null => {
+  const getBuiltinModule = (process as any)?.getBuiltinModule;
+  if (typeof getBuiltinModule === "function") {
+    try {
+      const m = getBuiltinModule(name) ?? getBuiltinModule(name.replace(/^node:/, ""));
+      if (m) return m;
+    } catch {}
+  }
   const req = getRequire();
   if (!req) return null;
   try {
-    const m = req("node:child_process");
-    return typeof m?.spawnSync === "function" ? m.spawnSync : null;
+    return req(`node:${name}`);
   } catch {
     try {
-      const m = req("child_process");
-      return typeof m?.spawnSync === "function" ? m.spawnSync : null;
+      return req(name);
     } catch {
       return null;
     }
   }
+};
+
+const getNodeSpawnSync = (): ((...args: any[]) => any) | null => {
+  const m = getNodeBuiltin("child_process");
+  return typeof m?.spawnSync === "function" ? m.spawnSync : null;
+};
+
+const getNodeZlib = (): any | null => {
+  const m = getNodeBuiltin("zlib");
+  return typeof m?.deflateRawSync === "function" ? m : null;
 };
 
 const getRequire = (): ((id: string) => any) | null => {
@@ -317,6 +436,8 @@ const getCjsDirname = (): string | null => {
   }
 };
 
+const sha256 = (value: string): string => sha256Hex(new TextEncoder().encode(value));
+
 const sha256Hex = (data: Uint8Array): string => {
   const k = new Uint32Array([
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -325,7 +446,6 @@ const sha256Hex = (data: Uint8Array): string => {
     0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
     0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
     0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
     0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
   ]);
 
