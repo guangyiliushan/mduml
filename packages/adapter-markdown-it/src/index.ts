@@ -219,6 +219,22 @@ export const umlFlowMarkdownItPlugin = (md: MarkdownIt, options?: UmlFlowMarkdow
   };
 
   const buildPlantUmlRemoteImageHtml = (code: string): string => {
+    if (plantUmlConfig.remoteBackend === "kroki") {
+      const segment = krokiServerUrlSegment(code);
+      if (segment) {
+        const base = (
+          plantUmlConfig.remoteImageUrl ||
+          plantUmlConfig.remoteServerUrl ||
+          "https://kroki.io"
+        ).replace(/\/+$/, "");
+        return `<img class="uml-flow-plantuml" src="${escapeHtmlAttribute(`${base}/plantuml/svg/${segment}`)}" alt="PlantUML diagram" style="max-width:100%;">`;
+      }
+      return errorHtml(
+        "adapter-markdown-it/plantuml-kroki",
+        "浏览器运行时 Kroki <img> 需要 deflate 编码（fflate 依赖），当前未支持；请改用构建期渲染或 Kroki POST"
+      );
+    }
+
     const base = (
       plantUmlConfig.remoteImageUrl ||
       plantUmlConfig.remoteServerUrl ||
@@ -326,6 +342,16 @@ export const plantUmlServerUrlSegment = (code: string): string => {
   let hex = "";
   for (const byte of bytes) hex += byte.toString(16).padStart(2, "0");
   return `~h${hex}`;
+};
+
+const krokiServerUrlSegment = (code: string): string | null => {
+  const zlib = getNodeZlib();
+  if (!zlib || typeof zlib.deflateSync !== "function") return null;
+  try {
+    return zlib.deflateSync(Buffer.from(code, "utf8"), { level: 9 }).toString("base64url");
+  } catch {
+    return null;
+  }
 };
 
 const plantUmlEncode64 = (data: Uint8Array): string => {

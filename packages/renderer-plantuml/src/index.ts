@@ -31,8 +31,8 @@ export const createPlantUmlRenderer = (options?: { id?: string; config?: PlantUm
           const svg = await renderViaLocalJar(source, mergedConfig.localJarPath, timeoutMs);
           return { contentType: "image/svg+xml", content: svg };
         } catch (error) {
-          if (mergedConfig.enableRemoteFallback && mergedConfig.remoteServerUrl) {
-            const svg = await renderViaRemoteServer(source, mergedConfig.remoteServerUrl, timeoutMs, mergedConfig.remoteBackend);
+          if (mergedConfig.enableRemoteFallback && (mergedConfig.remoteServerUrl || mergedConfig.remoteBackend === "kroki")) {
+            const svg = await renderViaRemoteServer(source, mergedConfig.remoteServerUrl ?? "", timeoutMs, mergedConfig.remoteBackend);
             return { contentType: "image/svg+xml", content: svg };
           }
           const message = error instanceof Error ? error.message : String(error);
@@ -40,8 +40,8 @@ export const createPlantUmlRenderer = (options?: { id?: string; config?: PlantUm
         }
       }
 
-      if (mergedConfig.enableRemoteFallback && mergedConfig.remoteServerUrl) {
-        const svg = await renderViaRemoteServer(source, mergedConfig.remoteServerUrl, timeoutMs, mergedConfig.remoteBackend);
+      if (mergedConfig.enableRemoteFallback && (mergedConfig.remoteServerUrl || mergedConfig.remoteBackend === "kroki")) {
+        const svg = await renderViaRemoteServer(source, mergedConfig.remoteServerUrl ?? "", timeoutMs, mergedConfig.remoteBackend);
         return { contentType: "image/svg+xml", content: svg };
       }
 

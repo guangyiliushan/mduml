@@ -69,6 +69,15 @@ const main = async () => {
   const htmlRemoteViaServer = mdRemoteViaServer.render(input, {});
   assert.ok(htmlRemoteViaServer.includes("https://uml.via-server.example.com/plantuml/svg/"));
 
+  const mdKroki = new MarkdownIt({ html: true });
+  mdKroki.use(umlFlowMarkdownItPlugin, {
+    debug: false,
+    mode: "runtime",
+    plantuml: { remoteRender: true, remoteBackend: "kroki" }
+  });
+  const htmlKroki = mdKroki.render(input, {});
+  assert.ok(htmlKroki.includes("https://kroki.io/plantuml/svg/"));
+
   const mdEmpty = new MarkdownIt({ html: true });
   mdEmpty.use(umlFlowMarkdownItPlugin, { debug: false, mode: { mermaid: "build", plantuml: "build" } });
   const htmlEmpty = mdEmpty.render("```mermaid\n   \n```", {});

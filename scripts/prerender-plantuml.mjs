@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { findEsbuildBin } from "./build-demo.mjs";
 
 const root = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
@@ -22,7 +22,7 @@ const main = async () => {
   ], { cwd: root, stdio: "inherit" });
   if (build.status !== 0) throw new Error("esbuild failed");
 
-  const { examples } = await import(`file://${tmp.replace(/\\/g, "/")}`);
+  const { examples } = await import(pathToFileURL(tmp).href);
   const outDir = join(root, "demo", "generated");
   mkdirSync(outDir, { recursive: true });
 
