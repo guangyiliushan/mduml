@@ -15,6 +15,7 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "markdown.markdownItPlugins": true,
     "markdown.previewScripts": [
       "./dist/preview.global.js"
     ],
@@ -25,6 +26,21 @@
           "type": "boolean",
           "default": false,
           "description": "启用调试日志（影响渲染性能）"
+        },
+        "umlFlow.plantuml.localJarPath": {
+          "type": "string",
+          "default": "",
+          "description": "PlantUML 本地 jar 路径（需已安装 Java）。配置后预览将用本地 jar 构建期渲染 plantuml/uml 代码块"
+        },
+        "umlFlow.plantuml.remoteRender": {
+          "type": "boolean",
+          "default": false,
+          "description": "未配置本地 jar 时，用 PlantUML 服务器渲染（会把图文本发送到远程服务器）"
+        },
+        "umlFlow.plantuml.remoteServerUrl": {
+          "type": "string",
+          "default": "https://www.plantuml.com/plantuml",
+          "description": "PlantUML 服务器地址（配合 umlFlow.plantuml.remoteRender 使用）"
         }
       }
     }

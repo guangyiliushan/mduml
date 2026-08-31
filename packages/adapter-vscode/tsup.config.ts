@@ -10,7 +10,7 @@ export default defineConfig([
     clean: true,
     format: ["cjs"],
     external: ["vscode"],
-    noExternal: ["@mduml/adapter-markdown-it"],
+    noExternal: ["@mduml/adapter-markdown-it", "@mduml/core", "@mduml/renderer-plantuml", "@mduml/runtime-mermaid"],
     esbuildOptions(options) {
       options.conditions = ["require", "node", "default"];
     },

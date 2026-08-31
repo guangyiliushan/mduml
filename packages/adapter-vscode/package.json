@@ -5,16 +5,15 @@
   "type": "commonjs",
   "main": "./dist/extension.js",
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node ./scripts/copy-cli.mjs",
     "clean": "rimraf dist",
     "test": "node -e \"const fs = require('node:fs'); if (!fs.existsSync('./dist/extension.js')) process.exit(1);\"",
     "package:vsix": "node ./scripts/package-vsix.mjs"
   },
   "dependencies": {
     "@mduml/adapter-markdown-it": "workspace:*",
-    "@mermaid-js/layout-elk": "^0.2.1",
-    "markdown-it": "^14.1.0",
-    "mermaid": "^11.14.0"
+    "@mduml/runtime-mermaid": "workspace:*",
+    "markdown-it": "^14.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

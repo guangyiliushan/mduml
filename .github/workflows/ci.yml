@@ -1,12 +1,12 @@
 name: CI
 
 on:
+  workflow_dispatch:
   pull_request:
-    branches:
-      - main
   push:
     branches:
       - main
+      - dev
 
 permissions:
   contents: read
@@ -19,6 +19,7 @@ jobs:
   test:
     name: Test & Build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -52,6 +53,9 @@ jobs:
 
       - name: Build packages
         run: pnpm run build
+
+      - name: Build demo bundle
+        run: node scripts/build-demo.mjs
 
       - name: Run tests
         run: pnpm run test

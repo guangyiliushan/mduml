@@ -23,15 +23,22 @@
   },
   "dependencies": {
     "@mduml/core": "workspace:*",
-    "@mduml/renderer-mermaid-playwright": "workspace:*",
-    "@mduml/renderer-plantuml": "workspace:*"
+    "@mduml/renderer-plantuml": "workspace:*",
+    "@mduml/runtime-mermaid": "workspace:*"
   },
   "peerDependencies": {
-    "markdown-it": "^14.1.0"
+    "markdown-it": "^14.1.0",
+    "playwright": ">=1.44.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",
     "markdown-it": "^14.1.0",
+    "playwright": "^1.62.1",
     "rimraf": "^6.0.1",
     "tsup": "^8.3.0",
     "typescript": "^5.6.3"

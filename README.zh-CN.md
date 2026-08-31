@@ -5,6 +5,10 @@
 
 MDUML 是一个 TypeScript monorepo 项目，旨在为多个 Markdown 平台提供一致的、横平竖直（正交优先）的 UML 和流程图渲染体验。
 
+## 🎬 演示
+
+在线 demo（7 类 UML + Mermaid 正交对比 + Markdown playground）随文档一起部署到 GitHub Pages；本地运行：`npm run demo` → http://localhost:4173/demo/
+
 ## ✨ 核心特性
 
 - **多格式支持**：渲染 Mermaid (` ```mermaid `) 和 PlantUML (` ```plantuml ` / ` ```uml `) 代码块
@@ -59,12 +63,10 @@ MDUML 强制执行严格的"正交优先"视觉风格：
 
 #### 发布包（npm）
 
-- [`@mduml/core`](packages/core) - 核心逻辑和共享工具
-- [`@mduml/renderer-mermaid`](packages/renderer-mermaid) - Mermaid 图表渲染器
+- [`@mduml/core`](packages/core) - 核心类型和共享错误块渲染
 - [`@mduml/renderer-plantuml`](packages/renderer-plantuml) - PlantUML 图表渲染器
-- [`@mduml/runtime-mermaid`](packages/runtime-mermaid) - Mermaid 浏览器运行时
-- [`@mduml/renderer-mermaid-playwright`](packages/renderer-mermaid-playwright) - 基于 Playwright 的构建时 SVG 生成
-- [`@mduml/adapter-markdown-it`](packages/adapter-markdown-it) - markdown-it 插件和 CLI 工具
+- [`@mduml/runtime-mermaid`](packages/runtime-mermaid) - Mermaid 浏览器运行时（唯一正交/跳线实现；提供 ESM、CJS 和自包含 IIFE `UmlFlowRuntime` 全局包）
+- [`@mduml/adapter-markdown-it`](packages/adapter-markdown-it) - markdown-it 插件和构建期 CLI（经 `@mduml/runtime-mermaid` 由 Playwright 批量渲染）
 
 #### 应用包（不发布到 npm）
 
@@ -76,18 +78,15 @@ MDUML 强制执行严格的"正交优先"视觉风格：
 ```mermaid
 graph TD
   core["@mduml/core"]
-  renderer_mermaid["@mduml/renderer-mermaid"]
   renderer_plantuml["@mduml/renderer-plantuml"]
   runtime_mermaid["@mduml/runtime-mermaid"]
-  renderer_mermaid_pw["@mduml/renderer-mermaid-playwright"]
   adapter_mdit["@mduml/adapter-markdown-it"]
 
-  renderer_mermaid --> core
   renderer_plantuml --> core
-  renderer_mermaid_pw --> core
+  runtime_mermaid --> core
   adapter_mdit --> core
   adapter_mdit --> renderer_plantuml
-  adapter_mdit --> renderer_mermaid_pw
+  adapter_mdit --> runtime_mermaid
 ```
 
 ## 🚀 快速开始
@@ -277,12 +276,10 @@ npm run build -w @mduml/core
 ```
 mduml/
 ├── packages/
-│   ├── core/                          # 核心逻辑
-│   ├── renderer-mermaid/              # Mermaid 渲染器
+│   ├── core/                          # 核心类型 + 错误块（零依赖）
 │   ├── renderer-plantuml/             # PlantUML 渲染器
-│   ├── runtime-mermaid/               # 浏览器运行时
-│   ├── renderer-mermaid-playwright/   # 构建时渲染
-│   ├── adapter-markdown-it/           # markdown-it 插件
+│   ├── runtime-mermaid/               # 浏览器运行时（唯一正交/跳线实现）
+│   ├── adapter-markdown-it/           # markdown-it 插件 + 构建期 CLI
 │   ├── adapter-vscode/                # VS Code 扩展
 │   └── adapter-obsidian/              # Obsidian 插件
 ├── scripts/                           # 构建脚本
@@ -331,6 +328,7 @@ chore: 维护任务
 
 - [English Documentation](README.md)
 - [中文文档](README.zh-CN.md)
+- [📚 详细文档](docs/)
 - [Mermaid 文档](https://mermaid.js.org/)
 - [PlantUML 文档](https://plantuml.com/)
 - [markdown-it](https://github.com/markdown-it/markdown-it)

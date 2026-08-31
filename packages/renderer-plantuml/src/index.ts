@@ -1,11 +1,12 @@
 import { access } from "node:fs/promises";
 import { spawn } from "node:child_process";
-import { deflateRawSync } from "node:zlib";
+import { deflateRawSync, deflateSync } from "node:zlib";
 import type { DiagramLanguage, RenderedOutput, Renderer, RendererContext } from "@mduml/core";
 
 export type PlantUmlRendererConfig = {
   localJarPath?: string;
   remoteServerUrl?: string;
+  remoteBackend?: "plantuml" | "kroki";
   enableRemoteFallback?: boolean;
   timeoutMs?: number;
   injectOrthoStyle?: boolean;
@@ -30,8 +31,8 @@ export const createPlantUmlRenderer = (options?: { id?: string; config?: PlantUm
           const svg = await renderViaLocalJar(source, mergedConfig.localJarPath, timeoutMs);
           return { contentType: "image/svg+xml", content: svg };
         } catch (error) {
-          if (mergedConfig.enableRemoteFallback && mergedConfig.remoteServerUrl) {
-            const svg = await renderViaRemoteServer(source, mergedConfig.remoteServerUrl, timeoutMs);
+          if (mergedConfig.enableRemoteFallback && (mergedConfig.remoteServerUrl || mergedConfig.remoteBackend === "kroki")) {
+            const svg = await renderViaRemoteServer(source, mergedConfig.remoteServerUrl ?? "", timeoutMs, mergedConfig.remoteBackend);
             return { contentType: "image/svg+xml", content: svg };
           }
           const message = error instanceof Error ? error.message : String(error);
@@ -39,8 +40,8 @@ export const createPlantUmlRenderer = (options?: { id?: string; config?: PlantUm
         }
       }
 
-      if (mergedConfig.enableRemoteFallback && mergedConfig.remoteServerUrl) {
-        const svg = await renderViaRemoteServer(source, mergedConfig.remoteServerUrl, timeoutMs);
+      if (mergedConfig.enableRemoteFallback && (mergedConfig.remoteServerUrl || mergedConfig.remoteBackend === "kroki")) {
+        const svg = await renderViaRemoteServer(source, mergedConfig.remoteServerUrl ?? "", timeoutMs, mergedConfig.remoteBackend);
         return { contentType: "image/svg+xml", content: svg };
       }
 
@@ -52,6 +53,7 @@ export const createPlantUmlRenderer = (options?: { id?: string; config?: PlantUm
 const normalizeConfig = (raw: PlantUmlRendererConfig): {
   localJarPath?: string;
   remoteServerUrl?: string;
+  remoteBackend: "plantuml" | "kroki";
   enableRemoteFallback: boolean;
   timeoutMs: number;
   injectOrthoStyle: boolean;
@@ -60,6 +62,7 @@ const normalizeConfig = (raw: PlantUmlRendererConfig): {
   return {
     localJarPath: raw.localJarPath,
     remoteServerUrl: raw.remoteServerUrl,
+    remoteBackend: raw.remoteBackend ?? "plantuml",
     enableRemoteFallback: raw.enableRemoteFallback ?? false,
     timeoutMs: raw.timeoutMs ?? 20000,
     injectOrthoStyle: raw.injectOrthoStyle ?? true,
@@ -85,7 +88,13 @@ const injectPlantUmlOrthoStyle = (code: string, roundCorner: number): string => 
   return code.slice(0, insertAt) + block + code.slice(insertAt);
 };
 
-export const __test__ = { injectPlantUmlOrthoStyle };
+export const krokiEncode = (text: string): string =>
+  deflateSync(Buffer.from(text, "utf8"), { level: 9 }).toString("base64url");
+
+export const plantUmlServerPathSegment = (text: string): string => {
+  const compressed = deflateRawSync(Buffer.from(text, "utf8"));
+  return encode64(compressed);
+};
 
 const renderViaLocalJar = async (code: string, jarPath: string, timeoutMs: number): Promise<string> => {
   await access(jarPath);
@@ -124,10 +133,13 @@ const renderViaLocalJar = async (code: string, jarPath: string, timeoutMs: numbe
   });
 };
 
-const renderViaRemoteServer = async (code: string, serverUrl: string, timeoutMs: number): Promise<string> => {
-  const trimmed = serverUrl.replace(/\/+$/, "");
-  const encoded = plantUmlEncode(code);
-  const url = `${trimmed}/svg/${encoded}`;
+const renderViaRemoteServer = async (
+  code: string,
+  serverUrl: string,
+  timeoutMs: number,
+  backend: "plantuml" | "kroki"
+): Promise<string> => {
+  const url = buildRemoteServerUrl(code, serverUrl, backend);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -140,10 +152,14 @@ const renderViaRemoteServer = async (code: string, serverUrl: string, timeoutMs:
   }
 };
 
-const plantUmlEncode = (text: string): string => {
-  const compressed = deflateRawSync(Buffer.from(text, "utf8"));
-  return encode64(compressed);
+export const buildRemoteServerUrl = (code: string, serverUrl: string, backend: "plantuml" | "kroki"): string => {
+  const trimmed = serverUrl.replace(/\/+$/, "");
+  return backend === "kroki"
+    ? `${trimmed || "https://kroki.io"}/plantuml/svg/${krokiEncode(code)}`
+    : `${trimmed}/svg/${plantUmlEncode(code)}`;
 };
+
+const plantUmlEncode = (text: string): string => plantUmlServerPathSegment(text);
 
 const encode64 = (data: Buffer): string => {
   let result = "";
@@ -174,3 +190,5 @@ const encode6bit = (b: number): string => {
   if (b === 62) return "-";
   return "_";
 };
+
+export const __test__ = { injectPlantUmlOrthoStyle, krokiEncode, buildRemoteServerUrl };

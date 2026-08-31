@@ -3,6 +3,9 @@
   "version": "1.2.0",
   "private": false,
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,7 +14,8 @@
       "types": "./dist/index.d.ts",
       "require": "./dist/index.cjs",
       "import": "./dist/index.js"
-    }
+    },
+    "./global": "./dist/runtime.global.js"
   },
   "scripts": {
     "build": "tsup",
@@ -19,6 +23,7 @@
     "test": "node ./dist/tests/smoke-test.js"
   },
   "dependencies": {
+    "@mduml/core": "workspace:*",
     "@mermaid-js/layout-elk": "^0.2.1",
     "mermaid": "^11.14.0"
   },

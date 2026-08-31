@@ -7,14 +7,14 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "pnpm -w --filter @mduml/core run build && pnpm -w --filter @mduml/renderer-plantuml run build && pnpm -w --filter @mduml/renderer-mermaid run build && pnpm -w --filter @mduml/runtime-mermaid run build && pnpm -w --filter @mduml/renderer-mermaid-playwright run build && pnpm -w --filter @mduml/adapter-markdown-it run build && pnpm -w --filter @mduml/adapter-vscode run build && pnpm -w --filter @mduml/adapter-obsidian run build",
+    "build": "pnpm -r run build",
     "clean": "pnpm -r run clean",
-    "test": "pnpm -w --filter @mduml/core run test && pnpm -w --filter @mduml/renderer-plantuml run test && pnpm -w --filter @mduml/runtime-mermaid run test && pnpm -w --filter @mduml/adapter-markdown-it run test",
-    "release:tag": "pnpm -C packages/core exec -- npx semantic-release -e ../../release.tag.cjs && pnpm -C packages/renderer-plantuml exec -- npx semantic-release -e ../../release.tag.cjs && pnpm -C packages/renderer-mermaid exec -- npx semantic-release -e ../../release.tag.cjs && pnpm -C packages/runtime-mermaid exec -- npx semantic-release -e ../../release.tag.cjs && pnpm -C packages/renderer-mermaid-playwright exec -- npx semantic-release -e ../../release.tag.cjs && pnpm -C packages/adapter-markdown-it exec -- npx semantic-release -e ../../release.tag.cjs && pnpm -C packages/adapter-vscode exec -- npx semantic-release -e ../../release.tag.cjs && pnpm -C packages/adapter-obsidian exec -- npx semantic-release -e ../../release.tag.cjs"
+    "test": "pnpm -r run test",
+    "demo": "node demo/serve.mjs",
+    "release:tag": "pnpm exec semantic-release -e ./release.tag.cjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.1",
@@ -22,7 +22,6 @@
     "@semantic-release/release-notes-generator": "^14.0.3",
     "rimraf": "^6.0.1",
     "semantic-release": "^24.2.7",
-    "semantic-release-monorepo": "^8.0.2",
     "tsup": "^8.3.0",
     "typescript": "^5.6.3"
   }
