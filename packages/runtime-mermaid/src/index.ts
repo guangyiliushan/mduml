@@ -1,4 +1,5 @@
 import mermaidModule from "mermaid";
+import { createErrorBlockHtml as coreCreateErrorBlockHtml } from "@mduml/core";
 import { applySvgJumpLinks, type MermaidJumpLinksConfig, normalizeJumpLinksConfig } from "./jump-links";
 import { relayoutDirectedDiagram } from "./layout-layering";
 import { extractMermaidSemanticModelFromMermaid, type MermaidSemanticEdge, type MermaidSemanticModel, type MermaidSemanticNode } from "./mermaid-semantic";
@@ -121,17 +122,8 @@ export const renderAllMermaidBlocks = async (input: RenderAllMermaidBlocksInput 
   }
 };
 
-export const createErrorBlockHtml = (failure: { rendererId: string; message: string }): string => {
-  const safeMessage = escapeHtml(failure.message);
-  const safeRendererId = escapeHtml(failure.rendererId);
-  return [
-    '<div class="uml-flow-error" style="border:1px solid #e09; padding:12px; border-radius:8px;">',
-    '<div style="font-weight:600; margin-bottom:8px;">UML Flow 渲染失败</div>',
-    `<div style="opacity:0.9; margin-bottom:6px;">渲染器：${safeRendererId}</div>`,
-    `<pre style="white-space:pre-wrap; margin:0; opacity:0.85;">${safeMessage}</pre>`,
-    "</div>"
-  ].join("");
-};
+export const createErrorBlockHtml = (failure: { rendererId: string; message: string }): string =>
+  coreCreateErrorBlockHtml(failure).content;
 
 const resolveMermaidApi = (provided: unknown) => {
   const candidate = provided ?? (globalThis as any).mermaid ?? mermaidModule;
@@ -323,6 +315,3 @@ const isLikelyFlowchart = (code: string, svg: SVGSVGElement): boolean => {
   if (svg.querySelector("g.edgePaths") && svg.querySelector("g.node")) return true;
   return false;
 };
-
-const escapeHtml = (value: string): string =>
-  value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
