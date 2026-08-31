@@ -7,9 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "pnpm -w --filter @mduml/core run build && pnpm -w --filter @mduml/renderer-plantuml run build && pnpm -w --filter @mduml/renderer-mermaid run build && pnpm -w --filter @mduml/runtime-mermaid run build && pnpm -w --filter @mduml/renderer-mermaid-playwright run build && pnpm -w --filter @mduml/adapter-markdown-it run build && pnpm -w --filter @mduml/adapter-vscode run build && pnpm -w --filter @mduml/adapter-obsidian run build",
+    "build": "pnpm -w --filter @mduml/core run build && pnpm -w --filter @mduml/renderer-plantuml run build && pnpm -w --filter @mduml/runtime-mermaid run build && pnpm -w --filter @mduml/renderer-mermaid-playwright run build && pnpm -w --filter @mduml/adapter-markdown-it run build && pnpm -w --filter @mduml/adapter-vscode run build && pnpm -w --filter @mduml/adapter-obsidian run build",
     "clean": "pnpm -r run clean",
     "test": "pnpm -w --filter @mduml/core run test && pnpm -w --filter @mduml/renderer-plantuml run test && pnpm -w --filter @mduml/runtime-mermaid run test && pnpm -w --filter @mduml/adapter-markdown-it run test",
+    "demo": "node demo/serve.mjs",
     "release:tag": "pnpm exec semantic-release -e ./release.tag.cjs"
   },
   "devDependencies": {
