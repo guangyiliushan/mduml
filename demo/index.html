@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MDUML 渲染 Demo</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #111; color: #eee; font-family: system-ui, sans-serif; }
+    header { padding: 12px 16px; border-bottom: 1px solid #2a2a2a; }
+    header h1 { margin: 0 0 8px; font-size: 16px; }
+    .tabs { display: flex; gap: 8px; }
+    .tabs button { background: #1c1c1c; color: #ccc; border: 1px solid #333; border-radius: 6px; padding: 7px 14px; cursor: pointer; }
+    .tabs button.active { background: #2a6fdb; color: #fff; border-color: #2a6fdb; }
+    main { padding: 16px; }
+    .tab { display: none; }
+    .tab.active { display: block; }
+
+    #gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 16px; }
+    .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px; }
+    .card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .card-head .name { font-weight: 600; }
+    .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #333; color: #bbb; }
+    .badge.mermaid { background: #1f4e79; color: #cfe3ff; }
+    .badge.plantuml { background: #4d3a1f; color: #ffe2b0; }
+    .badge.type { background: #333; }
+    .canvas { background: #fff; border-radius: 6px; padding: 12px; overflow: auto; }
+    .canvas + .canvas { margin-top: 10px; }
+    .canvas svg { max-width: 100%; height: auto; display: block; }
+    .canvas-label { color: #888; font-size: 11px; margin-bottom: 8px; }
+    .err { color: #e05555; font-family: ui-monospace, monospace; font-size: 12px; white-space: pre-wrap; padding: 10px; }
+    #gallery-status, #md-status { color: #aaa; font-size: 13px; margin: 10px 0; min-height: 1.2em; }
+
+    #md-source { width: 100%; height: 240px; background: #1c1c1c; color: #d4d4d4; border: 1px solid #333; border-radius: 6px; padding: 10px; font-family: ui-monospace, Consolas, monospace; font-size: 13px; resize: vertical; }
+    .md-actions { margin: 10px 0; }
+    .md-actions button { background: #2a6fdb; color: #fff; border: none; border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+    #md-output { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 16px; }
+    #md-output .mermaid, #md-output .uml-flow-plantuml { margin: 12px 0; }
+    #md-output .uml-flow-plantuml { background: #fff; border-radius: 6px; max-width: 100%; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MDUML 渲染 Demo</h1>
+    <div class="tabs">
+      <button id="tab-gallery" class="active">图型画廊</button>
+      <button id="tab-playground">Markdown Playground</button>
+    </div>
+  </header>
+  <main>
+    <section id="gallery-tab" class="tab active">
+      <div id="gallery-status"></div>
+      <div id="gallery"></div>
+    </section>
+    <section id="playground-tab" class="tab">
+      <textarea id="md-source" spellcheck="false"># Demo
+
+```mermaid
+flowchart LR
+  A[开始] --> B{判断}
+  B -->|是| C[处理]
+  A --> C
+```
+
+```uml
+@startuml
+Alice -> Bob: request
+Bob --> Alice: response
+@enduml
+```</textarea>
+      <div class="md-actions"><button id="md-render">渲染</button></div>
+      <div id="md-status"></div>
+      <div id="md-output"></div>
+    </section>
+  </main>
+  <script>
+    const tabs = {
+      gallery: { btn: document.getElementById("tab-gallery"), panel: document.getElementById("gallery-tab") },
+      playground: { btn: document.getElementById("tab-playground"), panel: document.getElementById("playground-tab") }
+    };
+    for (const [name, t] of Object.entries(tabs)) {
+      t.btn.addEventListener("click", () => {
+        for (const [n, x] of Object.entries(tabs)) {
+          x.btn.classList.toggle("active", n === name);
+          x.panel.classList.toggle("active", n === name);
+        }
+      });
+    }
+  </script>
+  <script type="module" src="./demo.bundle.js"></script>
+</body>
+</html>

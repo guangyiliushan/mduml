@@ -5,6 +5,10 @@
 
 A TypeScript monorepo providing consistent, orthogonal-first (horizontal/vertical edges) UML and flowchart rendering across multiple Markdown platforms.
 
+## 🎬 Demo
+
+Live demo (7 UML diagram types + Mermaid orthogonal comparison + Markdown playground) is deployed with the docs on GitHub Pages. Locally: `npm run demo` → http://localhost:4173/demo/
+
 ## ✨ Features
 
 - **Multi-format Support**: Render Mermaid (` ```mermaid `) and PlantUML (` ```plantuml ` / ` ```uml `) code blocks

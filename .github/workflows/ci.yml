@@ -54,5 +54,8 @@ jobs:
       - name: Build packages
         run: pnpm run build
 
+      - name: Build demo bundle
+        run: node scripts/build-demo.mjs
+
       - name: Run tests
         run: pnpm run test

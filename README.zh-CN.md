@@ -5,6 +5,10 @@
 
 MDUML 是一个 TypeScript monorepo 项目，旨在为多个 Markdown 平台提供一致的、横平竖直（正交优先）的 UML 和流程图渲染体验。
 
+## 🎬 演示
+
+在线 demo（7 类 UML + Mermaid 正交对比 + Markdown playground）随文档一起部署到 GitHub Pages；本地运行：`npm run demo` → http://localhost:4173/demo/
+
 ## ✨ 核心特性
 
 - **多格式支持**：渲染 Mermaid (` ```mermaid `) 和 PlantUML (` ```plantuml ` / ` ```uml `) 代码块

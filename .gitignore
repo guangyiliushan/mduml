@@ -11,6 +11,12 @@ dist
 build
 *.tsbuildinfo
 
+# Demo build outputs
+demo/demo.bundle.js
+demo/demo.bundle.js.map
+demo/_preview.png
+demo/generated/
+
 # Lock files (all package managers)
 package-lock.json
 yarn.lock

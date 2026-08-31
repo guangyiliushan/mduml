@@ -11,7 +11,13 @@ type BatchInput = {
   blocks?: BatchBlock[];
   code?: string;
   language?: "plantuml" | "uml";
-  config?: { localJarPath?: string; timeoutMs?: number; enableRemoteFallback?: boolean; remoteServerUrl?: string };
+  config?: {
+    localJarPath?: string;
+    timeoutMs?: number;
+    enableRemoteFallback?: boolean;
+    remoteServerUrl?: string;
+    remoteBackend?: "plantuml" | "kroki";
+  };
   debug?: boolean;
 };
 

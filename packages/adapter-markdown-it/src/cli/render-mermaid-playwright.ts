@@ -20,13 +20,16 @@ type BlockResult = { id: string; ok: true; svg: string } | { id: string; ok: fal
 const readStdin = (): string => readFileSync(0, "utf8");
 
 const resolveRuntimeGlobalScriptPath = (): string => {
-  const require = createRequire(import.meta.url);
-  try {
-    return require.resolve("@mduml/runtime-mermaid/global");
-  } catch {
-    const fallback = new URL("./runtime.global.js", import.meta.url);
-    return fallback.pathname.replace(/^\/([a-zA-Z]:)/, "$1");
+  const anchors: string[] = [];
+  const metaUrl = (import.meta as any)?.url;
+  if (typeof metaUrl === "string") anchors.push(metaUrl);
+  if (typeof process.argv?.[1] === "string") anchors.push(process.argv[1]);
+  for (const anchor of anchors) {
+    try {
+      return createRequire(anchor).resolve("@mduml/runtime-mermaid/global");
+    } catch {}
   }
+  throw new Error("@mduml/runtime-mermaid 全局包（./global → dist/runtime.global.js）解析失败；请确认依赖已安装且已构建");
 };
 
 const importPlaywright = async () => {
@@ -71,9 +74,13 @@ const main = async () => {
   });
 
   try {
-    const page = await browser.newPage();
-    await page.setContent("<!doctype html><html><head></head><body></body></html>", { waitUntil: "domcontentloaded" });
-    await page.addScriptTag({ path: scriptPath });
+    const createPreparedPage = async () => {
+      const p = await browser.newPage();
+      await p.setContent("<!doctype html><html><head></head><body></body></html>", { waitUntil: "domcontentloaded" });
+      await p.addScriptTag({ path: scriptPath });
+      return p;
+    };
+    let page = await createPreparedPage();
 
     const timeoutMs = payload.backend?.timeoutMs ?? 20_000;
     const results: BlockResult[] = [];
@@ -100,6 +107,16 @@ const main = async () => {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         results.push({ id: block.id, ok: false, message });
+        try {
+          await page.close();
+          page = await createPreparedPage();
+        } catch (recreateError) {
+          const recreateMessage = recreateError instanceof Error ? recreateError.message : String(recreateError);
+          for (const remaining of blocks.slice(blocks.indexOf(block) + 1)) {
+            results.push({ id: remaining.id, ok: false, message: `页面重建失败：${recreateMessage}` });
+          }
+          break;
+        }
       }
     }
 

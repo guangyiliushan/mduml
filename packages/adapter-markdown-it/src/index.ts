@@ -5,6 +5,12 @@ import type { MermaidRuntimeConfig } from "@mduml/runtime-mermaid";
 
 export type UmlFlowMarkdownItMode = "runtime" | "build" | "auto";
 
+type CliPayload = {
+  ok: boolean;
+  results?: { id: string; ok: boolean; svg?: string; message?: string }[];
+  message?: string;
+};
+
 export type UmlFlowMarkdownItModeSpec =
   | UmlFlowMarkdownItMode
   | { mermaid?: UmlFlowMarkdownItMode; plantuml?: UmlFlowMarkdownItMode };
@@ -49,6 +55,7 @@ export type UmlFlowPlantUmlOptions = {
   timeoutMs?: number;
   enableRemoteFallback?: boolean;
   remoteServerUrl?: string;
+  remoteBackend?: "plantuml" | "kroki";
   remoteRender?: boolean;
   remoteImageUrl?: string;
 };
@@ -99,6 +106,7 @@ export const umlFlowMarkdownItPlugin = (md: MarkdownIt, options?: UmlFlowMarkdow
     timeoutMs: options?.plantuml?.timeoutMs,
     enableRemoteFallback: options?.plantuml?.enableRemoteFallback,
     remoteServerUrl: options?.plantuml?.remoteServerUrl,
+    remoteBackend: options?.plantuml?.remoteBackend ?? "plantuml",
     remoteRender: options?.plantuml?.remoteRender ?? false,
     remoteImageUrl: options?.plantuml?.remoteImageUrl
   };
@@ -211,7 +219,11 @@ export const umlFlowMarkdownItPlugin = (md: MarkdownIt, options?: UmlFlowMarkdow
   };
 
   const buildPlantUmlRemoteImageHtml = (code: string): string => {
-    const base = (plantUmlConfig.remoteImageUrl || "https://www.plantuml.com/plantuml").replace(/\/+$/, "");
+    const base = (
+      plantUmlConfig.remoteImageUrl ||
+      plantUmlConfig.remoteServerUrl ||
+      "https://www.plantuml.com/plantuml"
+    ).replace(/\/+$/, "");
     const segment = plantUmlServerUrlSegment(code);
     return `<img class="uml-flow-plantuml" src="${escapeHtmlAttribute(`${base}/svg/${segment}`)}" alt="PlantUML diagram" style="max-width:100%;">`;
   };
@@ -228,17 +240,8 @@ export const umlFlowMarkdownItPlugin = (md: MarkdownIt, options?: UmlFlowMarkdow
       debug,
       backend: { type: "playwright" as const, executablePath: buildBackend.executablePath, timeoutMs: buildBackend.timeoutMs }
     };
-    const raw = spawnCli("render-mermaid-playwright", payload);
-    if (!raw) return results;
-    try {
-      const parsed = JSON.parse(raw) as { ok?: boolean; results?: { id: string; ok: boolean; svg?: string; message?: string }[] };
-      for (const item of parsed.results ?? []) {
-        if (item.ok && typeof item.svg === "string") results.set(item.id, { ok: true, svg: item.svg });
-        else results.set(item.id, { ok: false, message: item.message ?? "构建期渲染失败" });
-      }
-    } catch {
-      return results;
-    }
+    const cliPayload = spawnCli("render-mermaid-playwright", payload);
+    applyCliPayload(cliPayload, pending, results);
     return results;
   };
 
@@ -246,6 +249,12 @@ export const umlFlowMarkdownItPlugin = (md: MarkdownIt, options?: UmlFlowMarkdow
     pending: Map<string, { code: string; language: "plantuml" | "uml" }>
   ): Map<string, { ok: true; svg: string } | { ok: false; message: string }> => {
     const results = new Map<string, { ok: true; svg: string } | { ok: false; message: string }>();
+    const canRender = Boolean(plantUmlConfig.localJarPath || (plantUmlConfig.enableRemoteFallback && plantUmlConfig.remoteServerUrl));
+    if (!canRender) {
+      const message = "PlantUML 未配置 localJarPath，且未启用远程兜底（enableRemoteFallback + remoteServerUrl）";
+      for (const id of pending.keys()) results.set(id, { ok: false, message });
+      return results;
+    }
     const blocks = Array.from(pending.entries()).map(([id, block]) => ({ id, code: block.code, language: block.language }));
     const payload = {
       blocks,
@@ -254,40 +263,48 @@ export const umlFlowMarkdownItPlugin = (md: MarkdownIt, options?: UmlFlowMarkdow
         localJarPath: plantUmlConfig.localJarPath,
         timeoutMs: plantUmlConfig.timeoutMs,
         enableRemoteFallback: plantUmlConfig.enableRemoteFallback,
-        remoteServerUrl: plantUmlConfig.remoteServerUrl
+        remoteServerUrl: plantUmlConfig.remoteServerUrl,
+        remoteBackend: plantUmlConfig.remoteBackend
       }
     };
-    const raw = spawnCli("render-plantuml", payload);
-    if (!raw) return results;
-    try {
-      const parsed = JSON.parse(raw) as { ok?: boolean; results?: { id: string; ok: boolean; svg?: string; message?: string }[] };
-      for (const item of parsed.results ?? []) {
-        if (item.ok && typeof item.svg === "string") results.set(item.id, { ok: true, svg: item.svg });
-        else results.set(item.id, { ok: false, message: item.message ?? "构建期渲染失败" });
-      }
-    } catch {
-      return results;
-    }
+    const cliPayload = spawnCli("render-plantuml", payload);
+    applyCliPayload(cliPayload, pending, results);
     return results;
   };
 
-  const spawnCli = (name: "render-mermaid-playwright" | "render-plantuml", payload: unknown): string | null => {
+  const applyCliPayload = (
+    cliPayload: CliPayload | null,
+    pending: Map<string, unknown>,
+    results: Map<string, { ok: true; svg: string } | { ok: false; message: string }>
+  ): void => {
+    if (!cliPayload) return;
+    if (cliPayload.ok !== true) {
+      const message = cliPayload.message ?? "构建期渲染失败";
+      for (const id of pending.keys()) results.set(id, { ok: false, message });
+      return;
+    }
+    for (const item of cliPayload.results ?? []) {
+      if (item.ok && typeof item.svg === "string") results.set(item.id, { ok: true, svg: item.svg });
+      else results.set(item.id, { ok: false, message: item.message ?? "构建期渲染失败" });
+    }
+  };
+
+  const spawnCli = (name: "render-mermaid-playwright" | "render-plantuml", payload: unknown): CliPayload | null => {
     const spawnSync = getNodeSpawnSync();
     if (!spawnSync) return null;
     const cliPath = resolveCliPath(name, cliDir);
     const result = spawnSync(process.execPath, [cliPath], {
       input: JSON.stringify(payload),
       encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024
+      maxBuffer: 64 * 1024 * 1024,
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" }
     });
     const stdout = result.stdout ?? "";
     if (stdout.trim().length === 0) return null;
     try {
-      const parsed = JSON.parse(stdout) as { ok?: boolean };
-      if (parsed.ok) return stdout;
-    } catch {
-      return null;
-    }
+      const parsed = JSON.parse(stdout) as CliPayload;
+      if (parsed && typeof parsed === "object" && typeof parsed.ok === "boolean") return parsed;
+    } catch {}
     return null;
   };
 };
@@ -297,7 +314,7 @@ const normalizeModes = (spec: UmlFlowMarkdownItModeSpec | undefined): { mermaid:
   return { mermaid: spec?.mermaid ?? "runtime", plantuml: spec?.plantuml ?? "runtime" };
 };
 
-const plantUmlServerUrlSegment = (code: string): string => {
+export const plantUmlServerUrlSegment = (code: string): string => {
   const zlib = getNodeZlib();
   if (zlib) {
     try {
@@ -358,38 +375,29 @@ const fileUrlToPathString = (url: URL): string => {
   return p;
 };
 
+const getCjsDirname = (): string | null => {
+  if (typeof __filename !== "string") return null;
+  const path = getNodeBuiltin("path");
+  return typeof path?.dirname === "function" ? path.dirname(__filename) : null;
+};
+
 const resolveCliPath = (name: "render-mermaid-playwright" | "render-plantuml", cliDir?: string): string => {
-  if (cliDir) {
-    const req = getRequire();
-    if (req) {
-      try {
-        const path = req("node:path");
-        return path.join(cliDir, `${name}.cjs`);
-      } catch {}
-    }
-    return `${cliDir}/${name}.cjs`;
-  }
+  if (cliDir) return `${cliDir}/${name}.cjs`;
 
   const metaUrl = (import.meta as any)?.url;
   if (typeof metaUrl === "string") {
     return fileUrlToPathString(new URL(`./cli/${name}.js`, metaUrl));
   }
 
-  const req = getRequire();
-  if (!req) return `./cli/${name}.js`;
+  const dirname = getCjsDirname();
+  if (dirname) return `${dirname}/cli/${name}.cjs`;
 
-  try {
-    const dirname = getCjsDirname();
-    if (!dirname) return `./cli/${name}.js`;
-    const path = req("node:path");
-    return path.join(dirname, "cli", `${name}.cjs`);
-  } catch {
-    return `./cli/${name}.js`;
-  }
+  return `./cli/${name}.js`;
 };
 
 const getNodeBuiltin = (name: string): any | null => {
-  const getBuiltinModule = (process as any)?.getBuiltinModule;
+  const processRef = typeof process !== "undefined" ? (process as any) : undefined;
+  const getBuiltinModule = processRef?.getBuiltinModule;
   if (typeof getBuiltinModule === "function") {
     try {
       const m = getBuiltinModule(name) ?? getBuiltinModule(name.replace(/^node:/, ""));
@@ -422,15 +430,6 @@ const getNodeZlib = (): any | null => {
 const getRequire = (): ((id: string) => any) | null => {
   try {
     return (0, eval)("require");
-  } catch {
-    return null;
-  }
-};
-
-const getCjsDirname = (): string | null => {
-  try {
-    const dirname = (0, eval)("__dirname");
-    return typeof dirname === "string" ? dirname : null;
   } catch {
     return null;
   }

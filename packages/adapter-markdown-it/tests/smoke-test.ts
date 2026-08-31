@@ -48,8 +48,26 @@ const main = async () => {
   });
   const htmlRemote = mdRemote.render(input, {});
   assert.ok(htmlRemote.includes("<img"));
-  assert.ok(htmlRemote.includes("/svg/"));
+  assert.ok(htmlRemote.includes("https://www.plantuml.com/plantuml/svg/"));
   assert.ok(htmlRemote.includes("uml-flow-plantuml"));
+
+  const mdRemoteCustom = new MarkdownIt({ html: true });
+  mdRemoteCustom.use(umlFlowMarkdownItPlugin, {
+    debug: false,
+    mode: "runtime",
+    plantuml: { remoteRender: true, remoteImageUrl: "https://uml.internal.example.com/plantuml" }
+  });
+  const htmlRemoteCustom = mdRemoteCustom.render(input, {});
+  assert.ok(htmlRemoteCustom.includes("https://uml.internal.example.com/plantuml/svg/"));
+
+  const mdRemoteViaServer = new MarkdownIt({ html: true });
+  mdRemoteViaServer.use(umlFlowMarkdownItPlugin, {
+    debug: false,
+    mode: "runtime",
+    plantuml: { remoteRender: true, remoteServerUrl: "https://uml.via-server.example.com/plantuml/" }
+  });
+  const htmlRemoteViaServer = mdRemoteViaServer.render(input, {});
+  assert.ok(htmlRemoteViaServer.includes("https://uml.via-server.example.com/plantuml/svg/"));
 
   const mdEmpty = new MarkdownIt({ html: true });
   mdEmpty.use(umlFlowMarkdownItPlugin, { debug: false, mode: { mermaid: "build", plantuml: "build" } });

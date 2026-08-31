@@ -33,9 +33,7 @@ if (!fs.existsSync(path.join(distDir, "extension.js"))) {
 const manifest = JSON.parse(fs.readFileSync(extensionManifestPath, "utf8"));
 const files = [
   "dist/extension.js",
-  "dist/extension.js.map",
   "dist/preview.global.js",
-  "dist/preview.global.js.map",
   "dist/cli/render-plantuml.cjs",
   "README.md"
 ];

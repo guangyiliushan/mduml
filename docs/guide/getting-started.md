@@ -147,6 +147,19 @@ PlantUML 无法在浏览器直接渲染，必须走构建期或外部服务。�
 }
 ```
 
+零 Java 的远程渲染（Kroki，公开免费，无需自建服务器）：
+
+```typescript
+{
+  plantuml: {
+    enableRemoteFallback: true,
+    remoteBackend: "kroki" // 默认 https://kroki.io，可用 remoteServerUrl 指向自建
+  }
+}
+```
+
+` ```uml ` 代码块与 ` ```plantuml ` 等价，都走 PlantUML 渲染，可表达 use case / class / sequence / activity / state / component / deployment 等完整 UML 图型。
+
 ## VS Code 扩展
 
 ```bash

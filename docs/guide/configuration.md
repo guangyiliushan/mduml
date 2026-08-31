@@ -83,6 +83,9 @@
 | `timeoutMs` | `number` | `20000` | 渲染超时 |
 | `enableRemoteFallback` | `boolean` | `false` | 是否启用远程服务器兜底（默认关闭，安全） |
 | `remoteServerUrl` | `string` | 未设置 | 远程 PlantUML server 地址 |
+| `remoteBackend` | `"plantuml" \| "kroki"` | `"plantuml"` | 远程后端类型；`kroki` 使用 Kroki（零 Java，默认 `https://kroki.io`） |
+| `remoteRender` | `boolean` | `false` | 运行时模式下用 `<img>` 直连 PlantUML 服务器渲染（零 Java） |
+| `remoteImageUrl` | `string` | `https://www.plantuml.com/plantuml` | `remoteRender` 使用的图片服务地址 |
 
 ## 运行时：`@mduml/runtime-mermaid`
 
@@ -111,6 +114,7 @@
 |------|------|--------|------|
 | `localJarPath` | `string` | 未设置 | 本地 jar |
 | `remoteServerUrl` | `string` | 未设置 | 远程 server |
+| `remoteBackend` | `"plantuml" \| "kroki"` | `"plantuml"` | 远程后端类型（Kroki 走 deflate+base64url 编码） |
 | `enableRemoteFallback` | `boolean` | `false` | 远程兜底 |
 | `timeoutMs` | `number` | `20000` | 超时 |
 | `injectOrthoStyle` | `boolean` | `true` | 自动注入 `skinparam linetype ortho` |
