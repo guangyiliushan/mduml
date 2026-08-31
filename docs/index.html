@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MDUML 文档</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --fg: #1f2328;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #2563eb;
+      --code-bg: #f6f8fa;
+      --sidebar-bg: #fafbfc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--fg);
+      line-height: 1.7;
+      display: flex;
+      min-height: 100vh;
+    }
+    aside {
+      width: 260px;
+      flex: 0 0 260px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      padding: 20px 14px;
+      overflow-y: auto;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+    .brand {
+      font-weight: 700;
+      font-size: 18px;
+      margin: 4px 8px 16px;
+    }
+    .brand small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+    .group {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin: 18px 8px 6px;
+    }
+    nav a {
+      display: block;
+      padding: 6px 8px;
+      border-radius: 6px;
+      color: var(--fg);
+      text-decoration: none;
+      font-size: 14px;
+    }
+    nav a:hover { background: #eceff3; }
+    nav a.active { background: #e3ecff; color: var(--accent); font-weight: 600; }
+    main {
+      flex: 1;
+      min-width: 0;
+      padding: 28px 36px 80px;
+      max-width: 900px;
+    }
+    main h1 { font-size: 28px; margin-top: 0; }
+    main h2 {
+      font-size: 22px;
+      margin-top: 40px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    main h3 { font-size: 18px; margin-top: 30px; }
+    main h4 { font-size: 16px; margin-top: 24px; }
+    a { color: var(--accent); }
+    code {
+      background: var(--code-bg);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.9em;
+    }
+    pre {
+      background: var(--code-bg);
+      padding: 14px 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+    }
+    pre code { background: transparent; padding: 0; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+    th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; font-size: 14px; vertical-align: top; }
+    th { background: var(--code-bg); }
+    blockquote {
+      margin: 16px 0;
+      padding: 2px 16px;
+      border-left: 4px solid var(--border);
+      color: var(--muted);
+    }
+    .mermaid { margin: 20px 0; text-align: center; }
+    .mermaid svg { max-width: 100%; height: auto; }
+    .loading, .error { color: var(--muted); padding: 40px 0; text-align: center; }
+    @media (max-width: 800px) {
+      body { flex-direction: column; }
+      aside { width: 100%; flex: none; position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--border); }
+      main { padding: 20px 18px 60px; }
+    }
+  </style>
+</head>
+<body>
+  <aside>
+    <div class="brand">MDUML 文档<small>Markdown UML 渲染器</small></div>
+    <nav id="nav"></nav>
+  </aside>
+  <main id="content"><div class="loading">加载中…</div></main>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.14.0/dist/mermaid.esm.min.mjs";
+
+    const TOC = [
+      { group: "调用方", items: [
+        { title: "快速开始", path: "guide/getting-started.md" },
+        { title: "配置参考", path: "guide/configuration.md" },
+        { title: "API 参考", path: "guide/api-reference.md" },
+      ] },
+      { group: "维护者", items: [
+        { title: "架构总览", path: "maintainer/architecture.md" },
+        { title: "渲染管线", path: "maintainer/rendering-pipeline.md" },
+        { title: "正交布局算法", path: "maintainer/orthogonal-layout.md" },
+        { title: "构建与发布", path: "maintainer/build-release.md" },
+        { title: "代码关系图", path: "codegraph.md" },
+      ] },
+    ];
+
+    const nav = document.getElementById("nav");
+    const content = document.getElementById("content");
+    let currentPath = "";
+
+    for (const group of TOC) {
+      const h = document.createElement("div");
+      h.className = "group";
+      h.textContent = group.group;
+      nav.appendChild(h);
+      for (const item of group.items) {
+        const a = document.createElement("a");
+        a.textContent = item.title;
+        a.dataset.path = item.path;
+        a.href = "?p=" + item.path;
+        nav.appendChild(a);
+      }
+    }
+
+    mermaid.initialize({ startOnLoad: false, securityLevel: "loose", theme: "default" });
+
+    const mermaidCode = /<pre><code class="language-mermaid[^"]*">([\s\S]*?)<\/code><\/pre>/g;
+
+    function setActive(path) {
+      for (const a of nav.querySelectorAll("a")) {
+        a.classList.toggle("active", a.dataset.path === path);
+      }
+    }
+
+    function resolveDoc(base, href) {
+      if (/^(?:https?:)?\/\//i.test(href) || href.startsWith("/")) return href;
+      const u = new URL(href, new URL(base, "https://mduml.invalid/docs/"));
+      return decodeURIComponent(u.pathname.replace(/^\/docs\//, ""));
+    }
+
+    async function load(path, push = true) {
+      setActive(path);
+      currentPath = path;
+      content.innerHTML = '<div class="loading">加载中…</div>';
+      try {
+        const res = await fetch(path);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const md = await res.text();
+        const html = marked.parse(md).replace(mermaidCode, (_, code) => `<div class="mermaid">${code}</div>`);
+        content.innerHTML = html;
+        await mermaid.run({ querySelector: ".mermaid" });
+      } catch (err) {
+        content.innerHTML = `<div class="error">无法加载 <code>${path}</code>：${String(err?.message ?? err)}</div>`;
+      }
+      if (push) history.pushState({ path }, "", "?p=" + path);
+    }
+
+    content.addEventListener("click", (e) => {
+      const a = e.target.closest("a[href]");
+      if (!a) return;
+      const href = a.getAttribute("href") || "";
+      if (href.endsWith(".md")) {
+        e.preventDefault();
+        load(resolveDoc(currentPath, href), true);
+      }
+    });
+
+    window.addEventListener("popstate", () => {
+      const p = new URLSearchParams(location.search).get("p");
+      load(p || "guide/getting-started.md", false);
+    });
+
+    const initial = new URLSearchParams(location.search).get("p") || "guide/getting-started.md";
+    load(initial, false);
+  </script>
+</body>
+</html>

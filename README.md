@@ -59,12 +59,10 @@ MDUML enforces a strict "orthogonal-first" visual style for all diagrams:
 
 #### Published Packages (npm)
 
-- [`@mduml/core`](packages/core) - Core logic and shared utilities
-- [`@mduml/renderer-mermaid`](packages/renderer-mermaid) - Mermaid diagram renderer
+- [`@mduml/core`](packages/core) - Core types and shared error-block rendering
 - [`@mduml/renderer-plantuml`](packages/renderer-plantuml) - PlantUML diagram renderer
-- [`@mduml/runtime-mermaid`](packages/runtime-mermaid) - Browser runtime for Mermaid rendering
-- [`@mduml/renderer-mermaid-playwright`](packages/renderer-mermaid-playwright) - Build-time SVG generation via Playwright
-- [`@mduml/adapter-markdown-it`](packages/adapter-markdown-it) - markdown-it plugin and CLI tool
+- [`@mduml/runtime-mermaid`](packages/runtime-mermaid) - Browser runtime for Mermaid rendering (single canonical orthogonal/jump-link implementation; ships ESM, CJS and a self-contained IIFE `UmlFlowRuntime` global bundle)
+- [`@mduml/adapter-markdown-it`](packages/adapter-markdown-it) - markdown-it plugin and build-time CLI (Playwright batch rendering via `@mduml/runtime-mermaid`)
 
 #### Application Packages (not published to npm)
 
@@ -76,18 +74,15 @@ MDUML enforces a strict "orthogonal-first" visual style for all diagrams:
 ```mermaid
 graph TD
   core["@mduml/core"]
-  renderer_mermaid["@mduml/renderer-mermaid"]
   renderer_plantuml["@mduml/renderer-plantuml"]
   runtime_mermaid["@mduml/runtime-mermaid"]
-  renderer_mermaid_pw["@mduml/renderer-mermaid-playwright"]
   adapter_mdit["@mduml/adapter-markdown-it"]
 
-  renderer_mermaid --> core
   renderer_plantuml --> core
-  renderer_mermaid_pw --> core
+  runtime_mermaid --> core
   adapter_mdit --> core
   adapter_mdit --> renderer_plantuml
-  adapter_mdit --> renderer_mermaid_pw
+  adapter_mdit --> runtime_mermaid
 ```
 
 ## 🚀 Quick Start
@@ -277,12 +272,10 @@ npm run build -w @mduml/core
 ```
 mduml/
 ├── packages/
-│   ├── core/                          # Core logic
-│   ├── renderer-mermaid/              # Mermaid renderer
+│   ├── core/                          # Core types + error block (zero deps)
 │   ├── renderer-plantuml/             # PlantUML renderer
-│   ├── runtime-mermaid/               # Browser runtime
-│   ├── renderer-mermaid-playwright/   # Build-time rendering
-│   ├── adapter-markdown-it/           # markdown-it plugin
+│   ├── runtime-mermaid/               # Browser runtime (single orthogonal/jump-link impl)
+│   ├── adapter-markdown-it/           # markdown-it plugin + build-time CLI
 │   ├── adapter-vscode/                # VS Code extension
 │   └── adapter-obsidian/              # Obsidian plugin
 ├── scripts/                           # Build scripts
@@ -331,6 +324,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [English Documentation](README.md)
 - [中文文档](README.zh-CN.md)
+- [📚 Detailed Docs](docs/)
 - [Mermaid Documentation](https://mermaid.js.org/)
 - [PlantUML Documentation](https://plantuml.com/)
 - [markdown-it](https://github.com/markdown-it/markdown-it)
