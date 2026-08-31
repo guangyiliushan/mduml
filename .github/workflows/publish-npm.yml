@@ -1,42 +1,49 @@
 name: Publish to NPM
 
 on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Git ref (branch/tag/sha) to publish from
+        required: false
+        default: main
+        type: string
   workflow_dispatch:
     inputs:
-      mode:
-        description: "Publish mode: single (publish 1 package from @mduml/* tag) or all (publish all public workspace packages at current ref)"
+      ref:
+        description: Git ref (branch/tag/sha) to publish from
         required: false
-        default: "all"
+        default: main
         type: string
-      tag:
-        description: "Tag to publish (required for single mode when manually triggered)"
-        required: false
-        type: string
-  push:
-    tags:
-      - "@mduml/*"
-      - "release-v*"
-      - "v*"
 
 permissions:
   contents: read
   id-token: write
-  actions: read
+
+concurrency:
+  group: publish-npm-${{ inputs.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
-    name: Publish Package
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+    name: Publish Public Packages
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ inputs.ref }}
+
+      - name: Ensure NPM_TOKEN is set
+        if: env.NPM_TOKEN == ''
+        shell: bash
+        run: |
+          echo "Error: NPM_TOKEN is not set" >&2
+          exit 1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -45,7 +52,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
           version: 10.33.3
 
@@ -68,61 +75,7 @@ jobs:
       - name: Build packages
         run: pnpm run build
 
-      - name: Resolve workspace from tag
-        id: resolve
-        shell: bash
-        run: |
-          set -euo pipefail
-          TAG=""
-          if [ "${{ github.event_name }}" = "push" ]; then
-            TAG="${GITHUB_REF_NAME}"
-          else
-            TAG="${{ inputs.tag }}"
-          fi
-
-          MODE="${{ github.event_name == 'workflow_dispatch' && inputs.mode || '' }}"
-          if [ -z "$MODE" ]; then
-            if [[ "$TAG" == @mduml/* ]]; then
-              MODE="single"
-            else
-              MODE="all"
-            fi
-          fi
-
-          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
-
-          if [ "$MODE" != "single" ]; then
-            echo "Publishing mode=all at ref: $GITHUB_SHA"
-            exit 0
-          fi
-
-          if [ -z "$TAG" ]; then
-            echo "Error: tag is required for single mode. Provide workflow_dispatch input 'tag' or trigger this workflow by pushing an @mduml/* tag." >&2
-            exit 1
-          fi
-
-          if [[ "$TAG" != @mduml/* ]]; then
-            echo "Error: single mode expects an @mduml/* tag. Got: $TAG" >&2
-            exit 1
-          fi
-
-          echo "Resolving tag: $TAG"
-          JSON="$(node scripts/resolve-workspace-from-tag.mjs "$TAG")"
-          echo "$JSON" > /tmp/uml-flow-tag.json
-          echo "Resolved: $JSON"
-          
-          # Parse and validate
-          WORKSPACE_NAME=$(node -e "const j=JSON.parse(require('fs').readFileSync('/tmp/uml-flow-tag.json','utf8')); if(!j.ok) { console.error('Invalid tag'); process.exit(1); } console.log(j.workspaceName);")
-          WORKSPACE_DIR=$(node -e "const j=JSON.parse(require('fs').readFileSync('/tmp/uml-flow-tag.json','utf8')); if(!j.ok) process.exit(1); console.log(j.workspaceDir);")
-          VERSION=$(node -e "const j=JSON.parse(require('fs').readFileSync('/tmp/uml-flow-tag.json','utf8')); console.log(j.version);")
-          
-          echo "workspaceName=$WORKSPACE_NAME" >> "$GITHUB_OUTPUT"
-          echo "workspaceDir=$WORKSPACE_DIR" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Publishing $WORKSPACE_NAME@$VERSION"
-
-      - name: Collect publish targets (all mode)
-        if: steps.resolve.outputs.mode == 'all'
+      - name: Collect publish targets
         id: targets
         shell: bash
         run: |
@@ -152,64 +105,11 @@ jobs:
           echo "Targets:"
           cat /tmp/publish-targets.json
 
-      - name: Verify package exists
-        if: steps.resolve.outputs.mode == 'single'
-        run: |
-          if [ ! -d "packages/${{ steps.resolve.outputs.workspaceDir }}" ]; then
-            echo "Error: Package directory not found"
-            exit 1
-          fi
-
-      - name: Check if package is publishable
-        id: publishable
-        shell: bash
-        run: |
-          if [ "${{ steps.resolve.outputs.mode }}" = "all" ]; then
-            echo "publishable=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          PRIVATE=$(node -e "const p=require('./packages/${{ steps.resolve.outputs.workspaceDir }}/package.json'); console.log(String(!!p.private));")
-          if [ "$PRIVATE" = "true" ]; then
-            echo "publishable=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping publish: ${{ steps.resolve.outputs.workspaceName }} is private"
-          else
-            echo "publishable=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Ensure NPM_TOKEN is set
-        if: steps.publishable.outputs.publishable == 'true' && env.NPM_TOKEN == ''
-        shell: bash
-        run: |
-          echo "Error: NPM_TOKEN is not set"
-          exit 1
-
-      - name: Configure npm authentication
-        if: steps.publishable.outputs.publishable == 'true'
-        shell: bash
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-
-      - name: Check if already published
-        id: check
-        if: steps.publishable.outputs.publishable == 'true' && steps.resolve.outputs.mode == 'single'
-        run: |
-          PACKAGE_NAME="${{ steps.resolve.outputs.workspaceName }}"
-          VERSION="${{ steps.resolve.outputs.version }}"
-          
-          if npm view "$PACKAGE_NAME@$VERSION" version &>/dev/null; then
-            echo "already_published=true" >> "$GITHUB_OUTPUT"
-            echo "⚠️ Package $PACKAGE_NAME@$VERSION is already published"
-          else
-            echo "already_published=false" >> "$GITHUB_OUTPUT"
-            echo "✅ Package $PACKAGE_NAME@$VERSION is not published yet"
-          fi
-
-      - name: Publish all public packages
-        if: steps.publishable.outputs.publishable == 'true' && steps.resolve.outputs.mode == 'all'
+      - name: Publish public packages
         shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
         run: |
           set -euo pipefail
           node -e "const j=require('/tmp/publish-targets.json'); if(!j.ok) process.exit(1); for(const t of j.targets){ if(!t.name||!t.version) continue; console.log(t.name+'\t'+t.version); }" \
@@ -219,7 +119,7 @@ jobs:
                 fi
 
                 if npm view "$name@$version" version &>/dev/null; then
-                  echo "⚠️ Skip: $name@$version already published"
+                  echo "Skip: $name@$version already published"
                   continue
                 fi
 
@@ -227,19 +127,6 @@ jobs:
                 pnpm -w --filter "$name" publish --access public --no-git-checks
               done
 
-      - name: Publish to NPM
-        if: steps.publishable.outputs.publishable == 'true' && steps.resolve.outputs.mode == 'single' && steps.check.outputs.already_published == 'false'
-        run: |
-          echo "Publishing ${{ steps.resolve.outputs.workspaceName }}@${{ steps.resolve.outputs.version }}"
-          pnpm -w --filter "${{ steps.resolve.outputs.workspaceName }}" publish --access public --no-git-checks
-        env:
-          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}
-
       - name: Publish success
-        if: steps.publishable.outputs.publishable == 'true' && success()
-        run: |
-          if [ "${{ steps.resolve.outputs.mode }}" = "all" ]; then
-            echo "✅ Successfully published all public workspace packages"
-          else
-            echo "✅ Successfully published ${{ steps.resolve.outputs.workspaceName }}@${{ steps.resolve.outputs.version }}"
-          fi
+        if: success()
+        run: echo "✅ Publish step completed"

@@ -76,61 +76,10 @@ module.exports = {
     const nextVersion = context?.nextRelease?.version;
     if (!nextVersion) return;
 
-    const cwd = process.cwd();
-    const versioning = process.env.UML_FLOW_VERSIONING ?? "independent";
-    if (versioning === "lockstep") {
-      const repoRoot = findRepoRoot(cwd);
-      if (!repoRoot) return;
-      syncLockstepVersions(repoRoot, nextVersion);
-      return;
-    }
+    const repoRoot = findRepoRoot(process.cwd());
+    if (!repoRoot) return;
 
-    const packageJsonPath = path.join(cwd, "package.json");
-    if (!fs.existsSync(packageJsonPath)) return;
-
-    const packageJson = readJson(packageJsonPath);
-    const packageName = String(packageJson.name || "");
-
-    if (packageJson.version !== nextVersion) {
-      packageJson.version = nextVersion;
-      writeJson(packageJsonPath, packageJson);
-    }
-
-    if (packageName === "@mduml/adapter-vscode") {
-      const extensionPackageJsonPath = path.join(cwd, "extension.package.json");
-      if (fs.existsSync(extensionPackageJsonPath)) {
-        const extensionManifest = readJson(extensionPackageJsonPath);
-        if (extensionManifest.version !== nextVersion) {
-          extensionManifest.version = nextVersion;
-          writeJson(extensionPackageJsonPath, extensionManifest);
-        }
-      }
-    }
-
-    if (packageName === "@mduml/adapter-obsidian") {
-      const obsidianManifestPath = path.join(cwd, "manifest.json");
-      if (fs.existsSync(obsidianManifestPath)) {
-        const obsidianManifest = readJson(obsidianManifestPath);
-        if (obsidianManifest.version !== nextVersion) {
-          obsidianManifest.version = nextVersion;
-          writeJson(obsidianManifestPath, obsidianManifest);
-        }
-      }
-    }
-
-    if (packageName === "@mduml/core") {
-      const repoRoot = findRepoRoot(cwd);
-      if (repoRoot) {
-        const rootPackageJsonPath = path.join(repoRoot, "package.json");
-        if (fs.existsSync(rootPackageJsonPath)) {
-          const rootPackageJson = readJson(rootPackageJsonPath);
-          if (rootPackageJson.version !== nextVersion) {
-            rootPackageJson.version = nextVersion;
-            writeJson(rootPackageJsonPath, rootPackageJson);
-          }
-        }
-      }
-    }
+    syncLockstepVersions(repoRoot, nextVersion);
   }
 };
 
