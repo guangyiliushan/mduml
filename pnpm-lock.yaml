@@ -100,15 +100,12 @@ importers:
       '@mduml/adapter-markdown-it':
         specifier: workspace:*
         version: link:../adapter-markdown-it
-      '@mermaid-js/layout-elk':
-        specifier: ^0.2.1
-        version: 0.2.1(mermaid@11.14.0)
+      '@mduml/runtime-mermaid':
+        specifier: workspace:*
+        version: link:../runtime-mermaid
       markdown-it:
         specifier: ^14.1.0
         version: 14.1.1
-      mermaid:
-        specifier: ^11.14.0
-        version: 11.14.0
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
