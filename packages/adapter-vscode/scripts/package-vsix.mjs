@@ -1,9 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(new URL("../../..", import.meta.url).pathname);
-const packageDir = path.resolve(new URL("..", import.meta.url).pathname);
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+const packageDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const distDir = path.join(packageDir, "dist");
 const extensionManifestPath = path.join(packageDir, "extension.package.json");
@@ -35,6 +36,7 @@ const files = [
   "dist/extension.js.map",
   "dist/preview.global.js",
   "dist/preview.global.js.map",
+  "dist/cli/render-plantuml.cjs",
   "README.md"
 ];
 
@@ -53,10 +55,20 @@ for (const f of files) {
   copyFile(from, path.join(tmpDir, f));
 }
 
+const vsceCandidates = [
+  path.join(packageDir, "node_modules", "@vscode", "vsce", "vsce"),
+  path.join(repoRoot, "node_modules", "@vscode", "vsce", "vsce")
+];
+const vscePath = vsceCandidates.find((p) => fs.existsSync(p));
+if (!vscePath) {
+  process.stderr.write("@vscode/vsce not found. Install dependencies first.\n");
+  process.exit(1);
+}
+
 const result = spawnSync(
   process.execPath,
   [
-    path.join(repoRoot, "node_modules", "@vscode", "vsce", "vsce"),
+    vscePath,
     "package",
     "--no-dependencies",
     "--allow-missing-repository",
